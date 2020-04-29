@@ -1,13 +1,22 @@
 import logging
 import os
 import tempfile
+import enum
 
+import ckan.plugins as p
 import ckan.plugins.toolkit as tk
 import requests
-import textract
 from ckan.lib.uploader import get_resource_uploader
+from ckanext.resource_indexer.interface import IResourceIndexer
 
 logger = logging.getLogger(__name__)
+
+
+class ExtractorWeight(enum.IntEnum):
+    fallback = 0
+    default = 10
+    handler = 30
+    override = 50
 
 
 def select_indexable_resources(resources):
@@ -19,23 +28,26 @@ def select_indexable_resources(resources):
     return indexable
 
 
-def index_resource(res, index):
+def index_resource(res, pkg_dict):
+    text_index = pkg_dict.setdefault('text', [])
+
     path = _filepath_for_res_indexing(res)
     if not path:
         return
-    fmt = res['format'].lower()
-    if fmt == 'pdf':
-        try:
-            content = textract.process(path, extension='.pdf')
-        except Exception as e:
-            logger.warn('Problem during extracting content from <%s>: %s',
-                        path, e)
-            content = ''
-    else:
-        with open(path) as f:
-            content = f.read()
-    index.append(content)
 
+    extractors = sorted([
+        plugin.get_resource_content_extractor(res)
+        for plugin in p.PluginImplementations(IResourceIndexer)
+    ])
+    if not extractors:
+        return
+    _, extractor = extractors[-1]
+
+    for chunk in extractor(path):
+        if isinstance(chunk, dict):
+            pkg_dict.update(chunk)
+        else:
+            text_index.append(chunk)
     if res['url_type'] != 'upload':
         os.remove(path)
 
@@ -61,7 +73,7 @@ def _filepath_for_res_indexing(res):
         return
     try:
         size = int(resp.headers.get('content-length', 0))
-    except ValueError as e:
+    except ValueError:
         logger.warn('Incorrect Content-length header from url <%s>', url)
         return
     if 0 < size < tk.asint(

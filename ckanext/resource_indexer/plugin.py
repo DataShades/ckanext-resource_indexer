@@ -1,22 +1,51 @@
 # -*- coding: utf-8 -*-
 
+import logging
 import json
 
 import ckan.plugins as plugins
 
-from ckanext.resource_indexer.util import (select_indexable_resources,
-                                           index_resource)
+import ckanext.resource_indexer.interface as interface
+import ckanext.resource_indexer.utils as utils
+
+log = logging.getLogger(__name__)
 
 
 class Resource_IndexerPlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.IPackageController, inherit=True)
+    plugins.implements(interface.IResourceIndexer)
 
     # IPackageController
 
     def before_index(self, pkg_dict):
         resources = json.loads(pkg_dict['validated_data_dict']).get(
             'resources', [])
-        index = pkg_dict.setdefault('text', [])
-        for res in select_indexable_resources(resources):
-            index_resource(res, index)
+        for res in utils.select_indexable_resources(resources):
+            utils.index_resource(res, pkg_dict)
         return pkg_dict
+
+    # IResourceIndexer
+
+    def get_resource_content_extractor(self, res):
+        fmt = res['format'].lower()
+        return _make_extractor(fmt)
+
+
+def _make_extractor(fmt):
+    def extractor(path):
+        if fmt == 'pdf':
+            import textract
+            try:
+                content = textract.process(path, extension='.pdf')
+            except Exception as e:
+                log.warn('Problem during extracting content from <%s>',
+                         path, exc_info=e)
+                content = ''
+        else:
+            with open(path) as f:
+                content = f.read()
+        yield content
+    if fmt == 'pdf':
+        return utils.ExtractorWeight.handler, extractor
+    else:
+        return utils.ExtractorWeight.fallback, extractor

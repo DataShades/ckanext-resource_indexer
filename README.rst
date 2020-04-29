@@ -1,4 +1,10 @@
 
+.. image:: https://travis-ci.org/DataShades/ckanext-resource_indexer.svg?branch=master
+    :target: https://travis-ci.org/DataShades/ckanext-resource_indexer
+
+.. image:: https://codecov.io/gh/DataShades/ckanext-resource_indexer/branch/master/graph/badge.svg
+  :target: https://codecov.io/gh/DataShades/ckanext-resource_indexer
+
 =============
 ckanext-resource_indexer
 =============
@@ -7,9 +13,9 @@ ckanext-resource_indexer
 Config Settings
 ---------------
 
-Document any optional config settings here. For example::
+::
 
-    # The size treshold for remote resources
+    # The size treshold(MB) for remote resources
     # (optional, default: 4).
     ckanext.resource_indexer.max_remote_size = 4
 
@@ -30,10 +36,9 @@ Development Installation
 To install ckanext-resource_indexer for development, activate your CKAN virtualenv and
 do::
 
-    git clone https://github.com//ckanext-resource_indexer.git
+    git clone https://github.com/DataShades/ckanext-resource_indexer.git
     cd ckanext-resource_indexer
     python setup.py develop
-    pip install -r dev-requirements.txt
 
 Add ``resource_indexer`` to the ``ckan.plugins`` setting in your CKAN
 config file (by default the config file is located at
@@ -45,4 +50,12 @@ Running the Tests
 
 To run the tests, do::
 
-    nosetests --nologcapture --with-pylons=test.ini ckanext.resource_indexer
+  pytest --ckan-ini test.ini
+
+---------
+AWS Linux
+---------
+
+::
+
+   sudo yum install -y pulseaudio-libs-devel python-devel libxml2-devel libxslt-devel poppler poppler-utils
