@@ -5,9 +5,9 @@
 .. image:: https://codecov.io/gh/DataShades/ckanext-resource_indexer/branch/master/graph/badge.svg
   :target: https://codecov.io/gh/DataShades/ckanext-resource_indexer
 
-=============
+========================
 ckanext-resource_indexer
-=============
+========================
 
 ---------------
 Config Settings
