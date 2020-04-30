@@ -30,6 +30,26 @@ class Resource_IndexerPlugin(plugins.SingletonPlugin):
         fmt = res['format'].lower()
         return _make_extractor(fmt)
 
+    def get_index_content_combiner(self, res):
+        fmt = res['format'].lower()
+        return _make_combiner(fmt)
+
+
+def _make_combiner(fmt):
+    def combiner(pkg_dict, res_data):
+        text_index = pkg_dict.setdefault('text', [])
+
+        for chunk in res_data:
+            if isinstance(chunk, dict):
+                pkg_dict.update(chunk)
+        else:
+            text_index.append(chunk)
+
+    if fmt == 'pdf':
+        return utils.Weight.handler, combiner
+    else:
+        return utils.Weight.fallback, combiner
+
 
 def _make_extractor(fmt):
     def extractor(path):
@@ -46,6 +66,6 @@ def _make_extractor(fmt):
                 content = f.read()
         yield content
     if fmt == 'pdf':
-        return utils.ExtractorWeight.handler, extractor
+        return utils.Weight.handler, extractor
     else:
-        return utils.ExtractorWeight.fallback, extractor
+        return utils.Weight.fallback, extractor

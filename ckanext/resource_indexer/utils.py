@@ -12,7 +12,7 @@ from ckanext.resource_indexer.interface import IResourceIndexer
 logger = logging.getLogger(__name__)
 
 
-class ExtractorWeight(enum.IntEnum):
+class Weight(enum.IntEnum):
     fallback = 0
     default = 10
     handler = 30
@@ -29,12 +29,11 @@ def select_indexable_resources(resources):
 
 
 def index_resource(res, pkg_dict):
-    text_index = pkg_dict.setdefault('text', [])
-
     path = _filepath_for_res_indexing(res)
     if not path:
         return
 
+    # get all implemented extractors & use one with the biggest "weight"
     extractors = sorted([
         plugin.get_resource_content_extractor(res)
         for plugin in p.PluginImplementations(IResourceIndexer)
@@ -43,11 +42,19 @@ def index_resource(res, pkg_dict):
         return
     _, extractor = extractors[-1]
 
-    for chunk in extractor(path):
-        if isinstance(chunk, dict):
-            pkg_dict.update(chunk)
-        else:
-            text_index.append(chunk)
+    combiners = sorted([
+        plugin.get_index_content_combiner(res)
+        for plugin in p.PluginImplementations(IResourceIndexer)
+    ])
+    if not combiners:
+        return
+    _, combiner = combiners[-1]
+
+    # extract data from resource
+    res_data = extractor(path)
+    # add this data to the pkg_dict to be indexed
+    combiner(pkg_dict, res_data)
+
     if res['url_type'] != 'upload':
         os.remove(path)
 
