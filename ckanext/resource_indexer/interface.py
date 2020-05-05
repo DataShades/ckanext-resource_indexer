@@ -5,47 +5,39 @@ import ckan.plugins.interfaces as interfaces
 
 class IResourceIndexer(interfaces.Interface):
 
-    def get_resource_content_extractor(self, res):
+    def get_resource_indexer_weight(res):
+        """Defines priority of handler for resource.
+
+        :returns: priority of current plugin
+        :rtype: int
         """
-        Provide an ability to implement user content extractor
-        That will be used to extract data from package resoruce
+        import ckanext.resource_indexer.utils as utils
+        return utils.Weight.fallback
 
-        It's a first method that's called. It's decides how exactly
-        the data will be extracted. For example, if we have a JSON resource,
-        we can extract the data as a key:value pairs, since
-        JSON is similair to python dict.
+    def extract_indexable_chunks(self, path):
+        """Convert resource dictionary into chunks of indexable data.
 
-        This method must return the tuple with the weight and extractor
-        function itself.
-        e.g return 40, extractor
+        Chunks can have any form as long as they can be merged into
+        package dictionary by implementation of
+        IResourceIndexer.merge_chunk_into_index.
 
-        If the extractor weight is bigger than weight of standard one,
-        the custom one will be used.
 
-        :param res: the resource data
-        :type res: dictionary
+        :param path: path to resource file
+        :type path: string
 
-        :returns: the tuple with weight and extractor function
-        :rtype: tuple
+        :returns: iterable of all meaningfuld pieces of data
+        :rtype: iterable
+
         """
-        pass
+        return []
 
-    def get_index_content_combiner(self, res):
-        """
-        Provide an ability to implement user content combiner
-        That will be used to add resource extra data to pkg_dict
+    def merge_chunks_into_index(self, pkg_dict, chunks):
+        """Merge iterable into index.
 
-        This method decides how exactly the resource data will
-        be merged with pkg_dict. For example, we can rewrite duplicate keys,
-        append or ignore them.
+        :param pkg_dict: package that is going to be indexed
+        :type pkg_dict: dictionary
 
-        If the combiner weight is bigger than weight of standard one,
-        the custom one will be used.
-
-        :param res: the resource data
-        :type res: dictionary
-
-        :returns: the tuple with weight and combiner function
-        :rtype: tuple
+        :param chunks: collection of data fragments extracted from resource
+        :type chunks: iterable
         """
         pass

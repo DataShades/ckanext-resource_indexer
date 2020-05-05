@@ -40,8 +40,9 @@ do::
     cd ckanext-resource_indexer
     python setup.py develop
 
-Add ``resource_indexer`` to the ``ckan.plugins`` setting in your CKAN
-config file (by default the config file is located at
+Add ``resource_indexer`` (and optionaly ``pdf_resource_indexer`` or
+``plain_resource_indexer``) to the ``ckan.plugins`` setting in your
+CKAN config file (by default the config file is located at
 ``/etc/ckan/default/production.ini``).
 
 -----------------

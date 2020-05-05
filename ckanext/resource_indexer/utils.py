@@ -9,21 +9,24 @@ import requests
 from ckan.lib.uploader import get_resource_uploader
 from ckanext.resource_indexer.interface import IResourceIndexer
 
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 
 class Weight(enum.IntEnum):
-    fallback = 0
-    default = 10
+    skip = 0
+    fallback = 10
+    default = 20
     handler = 30
+    special = 40
     override = 50
 
 
 def select_indexable_resources(resources):
     indexable = []
+    supported = tk.aslist(
+                tk.config.get('ckanext.resource_indexer.indexable_formats'))
     for res in resources:
-        if res.get('format', '').lower() in tk.aslist(
-                tk.config.get('ckanext.resource_indexer.indexable_formats')):
+        if res.get('format', '').lower() in supported:
             indexable.append(res)
     return indexable
 
@@ -32,31 +35,21 @@ def index_resource(res, pkg_dict):
     path = _filepath_for_res_indexing(res)
     if not path:
         return
+    try:
+        handlers = [plugin for (weight, plugin) in sorted([
+            (plugin.get_resource_indexer_weight(res), plugin)
+            for plugin in p.PluginImplementations(IResourceIndexer)
+        ]) if plugin and weight > 0]
 
-    # get all implemented extractors & use one with the biggest "weight"
-    extractors = sorted([
-        plugin.get_resource_content_extractor(res)
-        for plugin in p.PluginImplementations(IResourceIndexer)
-    ])
-    if not extractors:
-        return
-    _, extractor = extractors[-1]
+        if not handlers:
+            return
+        handler = handlers[-1]
 
-    combiners = sorted([
-        plugin.get_index_content_combiner(res)
-        for plugin in p.PluginImplementations(IResourceIndexer)
-    ])
-    if not combiners:
-        return
-    _, combiner = combiners[-1]
-
-    # extract data from resource
-    res_data = extractor(path)
-    # add this data to the pkg_dict to be indexed
-    combiner(pkg_dict, res_data)
-
-    if res['url_type'] != 'upload':
-        os.remove(path)
+        chunks = handler.extract_indexable_chunks(path)
+        handler.merge_chunks_into_index(pkg_dict, chunks)
+    finally:
+        if res['url_type'] != 'upload':
+            os.remove(path)
 
 
 def _filepath_for_res_indexing(res):
@@ -64,8 +57,8 @@ def _filepath_for_res_indexing(res):
         uploader = get_resource_uploader(res)
         path = uploader.get_path(res['id'])
         if not os.path.exists(path):
-            logger.warn('Resource "%s" refers to unexisting path "%s"',
-                        res['id'], path)
+            log.warn('Resource "%s" refers to unexisting path "%s"',
+                     res['id'], path)
             return
         return path
     if not tk.asbool(tk.config.get('ckanext.resource_indexer.allow_remote')):
@@ -74,14 +67,14 @@ def _filepath_for_res_indexing(res):
     try:
         resp = requests.head(url, timeout=2)
     except Exception as e:
-        logger.warn(
+        log.warn(
             'Unable to make HEAD request for resource %s with url <%s>: %s',
             res['id'], url, e)
         return
     try:
         size = int(resp.headers.get('content-length', 0))
     except ValueError:
-        logger.warn('Incorrect Content-length header from url <%s>', url)
+        log.warn('Incorrect Content-length header from url <%s>', url)
         return
     if 0 < size < tk.asint(
             tk.config.get('ckanext.resource_indexer.max_remote_size',
@@ -90,3 +83,26 @@ def _filepath_for_res_indexing(res):
             resp = requests.get(url)
             dest.write(resp.content)
         return dest.name
+
+
+def merge_chunks(pkg_dict, chunks):
+    text_index = pkg_dict.setdefault('text', [])
+    for chunk in chunks:
+        text_index.append(chunk)
+
+
+def extract_pdf(path):
+    import textract
+    try:
+        content = textract.process(path, extension='.pdf')
+    except Exception as e:
+        log.warn('Problem during extracting content from <%s>',
+                 path, exc_info=e)
+        content = ''
+    yield content
+
+
+def extract_plain(path):
+    with open(path) as f:
+        content = f.read()
+    yield content

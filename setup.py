@@ -9,13 +9,19 @@ here = path.abspath(path.dirname(__file__))
 with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
+extras_require_pdf = ["textract~=1.6.3"]
+extras_require = {
+    'pdf': extras_require_pdf,
+    'all': extras_require_pdf,
+}
+
 setup(
     name='''ckanext-resource_indexer''',
 
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # http://packaging.python.org/en/latest/tutorial.html#version
-    version='0.0.1',
+    version='0.0.2',
 
     description='''''',
     long_description=long_description,
@@ -57,14 +63,11 @@ setup(
     namespace_packages=['ckanext'],
 
     install_requires=[
-        "ckantoolkit"
+        "ckantoolkit",
+        "six"
     ],
 
-    extras_require={
-      'pdf': [
-          "textract~=1.6.3"
-      ]
-    },
+    extras_require=extras_require,
     # If there are data files included in your packages that need to be
     # installed, specify them here.  If using Python 2.6 or less, then these
     # have to be included in MANIFEST.in as well.
@@ -83,7 +86,9 @@ setup(
     # pip to create the appropriate form of executable for the target platform.
     entry_points='''
         [ckan.plugins]
-        resource_indexer=ckanext.resource_indexer.plugin:Resource_IndexerPlugin
+        resource_indexer=ckanext.resource_indexer.plugin:ResourceIndexerPlugin
+        pdf_resource_indexer=ckanext.resource_indexer.plugin:PdfResourceIndexerPlugin
+        plain_resource_indexer=ckanext.resource_indexer.plugin:PlainResourceIndexerPlugin
 
         [babel.extractors]
         ckan = ckan.lib.extract:extract_ckan
