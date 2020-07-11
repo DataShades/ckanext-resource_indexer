@@ -9,6 +9,13 @@
 ckanext-resource_indexer
 ========================
 
+Index content of resources in addition to metadata.
+
+Important
+~~~~~~~~~
+
+master branch of this repository is unstable. Always install **ckanext-resource-indexer** using pip(``pip install ckanext-resource-indexer``) unless you are going to change extension's source code for your need.
+
 ---------------
 Config Settings
 ---------------
