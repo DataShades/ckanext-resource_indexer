@@ -39,6 +39,7 @@ Config Settings
     # textract's method for extracting content from pdf
     # (optional, default: None)
     ckanext.resource_indexer.pdf.method = pdfminer
+
 ------------------------
 Development Installation
 ------------------------
