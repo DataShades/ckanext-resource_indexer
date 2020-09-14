@@ -9,7 +9,7 @@ here = path.abspath(path.dirname(__file__))
 with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
-extras_require_pdf = ["textract~=1.6.3"]
+    extras_require_pdf = ["pdftotext"]
 extras_require = {
     'pdf': extras_require_pdf,
     'all': extras_require_pdf,
@@ -21,7 +21,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # http://packaging.python.org/en/latest/tutorial.html#version
-    version='0.0.3',
+    version='0.0.4',
 
     description='''''',
     long_description=long_description,

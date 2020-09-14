@@ -36,10 +36,6 @@ Config Settings
     # (optional, default: None)
     ckanext.resource_indexer.indexable_formats = txt pdf
 
-    # textract's method for extracting content from pdf
-    # (optional, default: None)
-    ckanext.resource_indexer.pdf.method = pdfminer
-
 ------------------------
 Development Installation
 ------------------------

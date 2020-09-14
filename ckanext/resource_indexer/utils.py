@@ -92,15 +92,15 @@ def merge_chunks(pkg_dict, chunks):
 
 
 def extract_pdf(path):
-    import textract
-    method = tk.config.get('ckanext.resource_indexer.pdf.method') or ''
+    import pdftotext
     try:
-        content = textract.process(path, extension='.pdf', method=method)
+        with open(path, 'rb') as file:
+            content = pdftotext.PDF(file)
     except Exception as e:
         log.warn('Problem during extracting content from <%s>',
                  path, exc_info=e)
-        content = ''
-    yield content
+        content = []
+    yield from content
 
 
 def extract_plain(path):
