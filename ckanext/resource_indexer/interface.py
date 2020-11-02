@@ -4,7 +4,6 @@ import ckan.plugins.interfaces as interfaces
 
 
 class IResourceIndexer(interfaces.Interface):
-
     def get_resource_indexer_weight(res):
         """Defines priority of handler for resource.
 
@@ -12,6 +11,7 @@ class IResourceIndexer(interfaces.Interface):
         :rtype: int
         """
         import ckanext.resource_indexer.utils as utils
+
         return utils.Weight.fallback
 
     def extract_indexable_chunks(self, path):

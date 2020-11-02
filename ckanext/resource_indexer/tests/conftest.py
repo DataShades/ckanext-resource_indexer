@@ -15,13 +15,14 @@ class FakeFileStorage(FlaskFileStorage):
         self.name = "upload"
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def make_resource():
     def factory(content, **kwargs):
 
         test_file = six.BytesIO()
-        test_file.write(six.b(content) if isinstance(
-            content, six.text_type) else content)
+        test_file.write(
+            six.b(content) if isinstance(content, six.text_type) else content
+        )
         test_resource = FakeFileStorage(test_file, "Metadata")
         context = {}
         params = {
@@ -32,4 +33,5 @@ def make_resource():
         }
         params.update(kwargs)
         helpers.call_action("resource_create", context, **params)
+
     return factory
