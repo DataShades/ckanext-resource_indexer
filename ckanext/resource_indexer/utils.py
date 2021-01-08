@@ -30,7 +30,7 @@ def select_indexable_resources(resources):
     """
     supported = tk.aslist(tk.config.get(
         "ckanext.resource_indexer.indexable_formats"))
-    return [res for res ins resources if res.get("format", "").lower() in supported]
+    return [res for res in resources if res.get("format", "").lower() in supported]
 
 
 def index_resource(res, pkg_dict):
