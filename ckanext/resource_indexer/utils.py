@@ -30,7 +30,7 @@ def select_indexable_resources(resources):
     """
     supported = tk.aslist(tk.config.get(
         "ckanext.resource_indexer.indexable_formats"))
-    return [res for res in resources if res.get("format", "").lower() in supported]
+    return [res for res ins resources if res.get("format", "").lower() in supported]
 
 
 def index_resource(res, pkg_dict):
@@ -44,7 +44,7 @@ def index_resource(res, pkg_dict):
             chunks = handler.extract_indexable_chunks(path)
             handler.merge_chunks_into_index(pkg_dict, chunks)
     except Exception as e:
-        log.error(f"An error occured during indexing process: {e}")
+        log.error("An error occured during indexing process: {}".format(e))
     finally:
         if res["url_type"] != "upload" or path.startswith('/tmp/'):
             os.remove(path)
@@ -106,21 +106,21 @@ def _download_remote_file(res_id, url):
         resp = requests.head(url, timeout=2, allow_redirects=True)
     except Exception as e:
         log.warn(
-            f"Unable to make HEAD request for resource {res_id} with url <{url}>: {e}"
+            "Unable to make HEAD request for resource {} with url <{}>: {}".format(res_id, url, e)
         )
         return
 
     if not resp.ok:
         log.warn(
-            f"Unsuccessful HEAD request for resource {res_id} with url <{url}>. \
-            Status code: {resp.status_code}",
+            "Unsuccessful HEAD request for resource {} with url <{}>. \
+            Status code: {}".format(res_id, url, resp.status_code),
         )
         return
 
     try:
         size = int(resp.headers.get("content-length", 0))
     except ValueError:
-        log.warn(f"Incorrect Content-length header from url <{url}>")
+        log.warn("Incorrect Content-length header from url <{}>".format(url))
         return
 
     if 0 < size < _get_remote_res_max_size():
@@ -130,7 +130,7 @@ def _download_remote_file(res_id, url):
                 dest.write(resp.content)
         except requests.exceptions.RequestException as e:
             log.error(
-                f"Cannot index remote resource {res_id} with url <{url}>: {e}"
+                "Cannot index remote resource {} with url <{}>: {}".format(res_id, url, e)
             )
             os.remove(dest.name)
             return
@@ -155,7 +155,7 @@ def extract_pdf(path):
             content = pdftotext.PDF(file)
     except Exception as e:
         log.warn(
-            f"Problem during extracting content from <{path}>", exc_info=e)
+            "Problem during extracting content from <{}>".format(path), exc_info=e)
         content = []
     yield from content
 
