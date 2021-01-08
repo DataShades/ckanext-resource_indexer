@@ -2,7 +2,6 @@ import logging
 import os
 import tempfile
 import enum
-from typing import List
 
 import requests
 
@@ -24,17 +23,17 @@ class Weight(enum.IntEnum):
     override = 50
 
 
-def select_indexable_resources(resources: List[dict]) -> List[dict]:
+def select_indexable_resources(resources):
     """
     Filter out resources with unsupported formats
     Returns a list of resources dicts
     """
-    supported: List[str] = tk.aslist(tk.config.get(
+    supported = tk.aslist(tk.config.get(
         "ckanext.resource_indexer.indexable_formats"))
     return [res for res in resources if res.get("format", "").lower() in supported]
 
 
-def index_resource(res: dict, pkg_dict: dict):
+def index_resource(res, pkg_dict):
     path = _get_filepath_for_resource(res)
     if not path:
         return
@@ -51,12 +50,12 @@ def index_resource(res: dict, pkg_dict: dict):
             os.remove(path)
 
 
-def _get_handler(res: dict):
+def _get_handler(res):
     """
     Handler is a plugin that will provide as with method to index resource
     Based on Weight we are returning the most valuable one
     """
-    handlers: List = [
+    handlers = [
         plugin
         for (weight, plugin) in sorted(
             [
@@ -72,19 +71,19 @@ def _get_handler(res: dict):
 
 def _get_filepath_for_resource(res):
     """Returns a filepath for a resource that will be indexed"""
-    res_id: str = res['id']
-    res_url: str = res['url']
+    res_id = res['id']
+    res_url = res['url']
 
     if res["url_type"] == "upload":
         uploader = get_resource_uploader(res)
 
         # TODO temporary workaround for ckanext-cloudstorage support
         if p.plugin_loaded('cloudstorage'):
-            url: str = uploader.get_url_from_filename(res_id, res_url)
-            filepath: str = _download_remote_file(res_id, url)
+            url = uploader.get_url_from_filename(res_id, res_url)
+            filepath = _download_remote_file(res_id, url)
             return filepath
 
-        path: str = uploader.get_path(res_id)
+        path = uploader.get_path(res_id)
         if not os.path.exists(path):
             log.warn('Resource "{res_id}" refers to unexisting path "{path}"')
             return
@@ -94,11 +93,11 @@ def _get_filepath_for_resource(res):
     if not tk.asbool(tk.config.get("ckanext.resource_indexer.allow_remote")):
         return
 
-    filepath: str = _download_remote_file(res_id, res_url)
+    filepath = _download_remote_file(res_id, res_url)
     return filepath
 
 
-def _download_remote_file(res_id: str, url: str) -> str:
+def _download_remote_file(res_id, url):
     """
     Downloads remote resource and save it as temporary file
     Returns path to this file
@@ -138,7 +137,7 @@ def _download_remote_file(res_id: str, url: str) -> str:
         return dest.name
 
 
-def _get_remote_res_max_size() -> int:
+def _get_remote_res_max_size():
     return tk.asint(tk.config.get("ckanext.resource_indexer.max_remote_size", 4)) * 1024 * 1024
 
 
