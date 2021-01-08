@@ -152,12 +152,13 @@ def extract_pdf(path):
 
     try:
         with open(path, "rb") as file:
-            content = pdftotext.PDF(file)
+            pdf_content = pdftotext.PDF(file)
     except Exception as e:
         log.warn(
             "Problem during extracting content from <{}>".format(path), exc_info=e)
-        content = []
-    yield from content
+        pdf_content = []
+    for page in pdf_content:
+        yield page
 
 
 def extract_plain(path):
