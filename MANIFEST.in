@@ -1,4 +1,5 @@
 include README.rst
 include LICENSE
 include requirements.txt
-recursive-include ckanext/resource_indexer *.html *.json *.js *.less *.css *.mo
+recursive-include ckanext/resource_indexer *.html *.json *.js *.less *.css *.mo *.yml
+reqursive-include ckanext/resource_indexer/migrations *.mako *.ini *.py

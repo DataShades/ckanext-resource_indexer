@@ -13,6 +13,9 @@ from ckanext.resource_indexer.interface import IResourceIndexer
 
 log = logging.getLogger(__name__)
 
+CONFIG_MAX_REMOTE_SIZE = "ckanext.resource_indexer.max_remote_size"
+CONFIG_ALLOW_REMOTE = "ckanext.resource_indexer.allow_remote"
+CONFIG_INDEXABLE_FORMATS = "ckanext.resource_indexer.indexable_formats"
 
 class Weight(enum.IntEnum):
     skip = 0
@@ -29,7 +32,7 @@ def select_indexable_resources(resources):
     Returns a list of resources dicts
     """
     supported = tk.aslist(tk.config.get(
-        "ckanext.resource_indexer.indexable_formats"))
+        CONFIG_INDEXABLE_FORMATS))
     return [res for res in resources if res.get("format", "").lower() in supported]
 
 
@@ -90,7 +93,7 @@ def _get_filepath_for_resource(res):
 
         return path
 
-    if not tk.asbool(tk.config.get("ckanext.resource_indexer.allow_remote")):
+    if not tk.asbool(tk.config.get(CONFIG_ALLOW_REMOTE)):
         return
 
     filepath = _download_remote_file(res_id, res_url)
@@ -103,18 +106,19 @@ def _download_remote_file(res_id, url):
     Returns path to this file
     """
     try:
-        resp = requests.head(url, timeout=2, allow_redirects=True)
+        resp = requests.get(url, timeout=2, allow_redirects=True, stream=True)
     except Exception as e:
         log.warn(
-            "Unable to make HEAD request for resource {} with url <{}>: {}".format(res_id, url, e)
+            "Unable to make GET request for resource {} with url <{}>: {}".format(res_id, url, e)
         )
         return
 
     if not resp.ok:
         log.warn(
-            "Unsuccessful HEAD request for resource {} with url <{}>. \
+            "Unsuccessful GET request for resource {} with url <{}>. \
             Status code: {}".format(res_id, url, resp.status_code),
         )
+
         return
 
     try:
@@ -124,10 +128,11 @@ def _download_remote_file(res_id, url):
         return
 
     if 0 < size < _get_remote_res_max_size():
+        dest = tempfile.NamedTemporaryFile(delete=False)
         try:
-            with tempfile.NamedTemporaryFile(delete=False) as dest:
-                resp = requests.get(url)
-                dest.write(resp.content)
+            with dest:
+                for chunk in resp.iter_content(1024 * 64):
+                    dest.write(chunk)
         except requests.exceptions.RequestException as e:
             log.error(
                 "Cannot index remote resource {} with url <{}>: {}".format(res_id, url, e)
@@ -138,7 +143,7 @@ def _download_remote_file(res_id, url):
 
 
 def _get_remote_res_max_size():
-    return tk.asint(tk.config.get("ckanext.resource_indexer.max_remote_size", 4)) * 1024 * 1024
+    return tk.asint(tk.config.get(CONFIG_MAX_REMOTE_SIZE, 4)) * 1024 * 1024
 
 
 def merge_text_chunks(pkg_dict, chunks):
