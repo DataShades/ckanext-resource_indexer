@@ -66,4 +66,4 @@ AWS Linux
 
 ::
 
-   sudo yum install -y pulseaudio-libs-devel python-devel libxml2-devel libxslt-devel poppler poppler-utils
+   sudo yum install -y pulseaudio-libs-devel python-devel libxml2-devel libxslt-devel poppler poppler-utils poppler-cpp-devel
