@@ -13,6 +13,7 @@ from ckanext.resource_indexer.interface import IResourceIndexer
 
 log = logging.getLogger(__name__)
 
+CONFIG_INDEX_FIELD = 'ckanext.resoruce_indexer.index_field'
 CONFIG_MAX_REMOTE_SIZE = "ckanext.resource_indexer.max_remote_size"
 CONFIG_ALLOW_REMOTE = "ckanext.resource_indexer.allow_remote"
 CONFIG_INDEXABLE_FORMATS = "ckanext.resource_indexer.indexable_formats"
@@ -148,8 +149,15 @@ def _get_remote_res_max_size():
 
 def merge_text_chunks(pkg_dict, chunks):
     text_index = pkg_dict.setdefault("text", [])
+    index_field = tk.config.get(CONFIG_INDEX_FIELD)
+    str_index = ''
+
     for chunk in chunks:
         text_index.append(chunk)
+        if index_field:
+            str_index += str(chunk)
+    if str_index:
+        pkg_dict[index_field] = str_index
 
 
 def extract_pdf(path):

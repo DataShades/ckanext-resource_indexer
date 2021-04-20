@@ -36,6 +36,11 @@ Config Settings
     # (optional, default: None)
     ckanext.resource_indexer.indexable_formats = txt pdf
 
+    # Field containing data extacted from the file in addition to the
+    # general `text` field
+    # (optional, default: None)
+    ckanext.resoruce_indexer.index_field = extras_res_attachment
+
 ------------------------
 Development Installation
 ------------------------
