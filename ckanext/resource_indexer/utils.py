@@ -156,8 +156,9 @@ def merge_text_chunks(pkg_dict, chunks):
         text_index.append(chunk)
         if index_field:
             str_index += str(chunk)
+
     if str_index:
-        pkg_dict[index_field] = str_index
+        pkg_dict[index_field] = (pkg_dict.get(index_field) or '') + ' ' + str_index
 
 
 def extract_pdf(path):
