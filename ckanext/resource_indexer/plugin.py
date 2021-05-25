@@ -16,6 +16,7 @@ class ResourceIndexerPlugin(p.SingletonPlugin):
 
     def before_index(self, pkg_dict):
         resources = json.loads(pkg_dict["validated_data_dict"]).get("resources", [])
+
         for res in utils.select_indexable_resources(resources):
             utils.index_resource(res, pkg_dict)
         return pkg_dict

@@ -13,10 +13,11 @@ from ckanext.resource_indexer.interface import IResourceIndexer
 
 log = logging.getLogger(__name__)
 
-CONFIG_INDEX_FIELD = 'ckanext.resoruce_indexer.index_field'
+CONFIG_INDEX_FIELD = "ckanext.resoruce_indexer.index_field"
 CONFIG_MAX_REMOTE_SIZE = "ckanext.resource_indexer.max_remote_size"
 CONFIG_ALLOW_REMOTE = "ckanext.resource_indexer.allow_remote"
 CONFIG_INDEXABLE_FORMATS = "ckanext.resource_indexer.indexable_formats"
+
 
 class Weight(enum.IntEnum):
     skip = 0
@@ -32,26 +33,22 @@ def select_indexable_resources(resources):
     Filter out resources with unsupported formats
     Returns a list of resources dicts
     """
-    supported = tk.aslist(tk.config.get(
-        CONFIG_INDEXABLE_FORMATS))
+    supported = tk.aslist(tk.config.get(CONFIG_INDEXABLE_FORMATS))
     return [res for res in resources if res.get("format", "").lower() in supported]
 
 
 def index_resource(res, pkg_dict):
-    path = _get_filepath_for_resource(res)
-    if not path:
+    removable_path = _get_removable_filepath_for_resource(res)
+    if not removable_path:
         return
-
-    try:
-        handler = _get_handler(res)
-        if handler:
-            chunks = handler.extract_indexable_chunks(path)
-            handler.merge_chunks_into_index(pkg_dict, chunks)
-    except Exception as e:
-        log.error("An error occured during indexing process: {}".format(e))
-    finally:
-        if res["url_type"] != "upload" or path.startswith('/tmp/'):
-            os.remove(path)
+    with removable_path as path:
+        try:
+            handler = _get_handler(res)
+            if handler:
+                chunks = handler.extract_indexable_chunks(path)
+                handler.merge_chunks_into_index(pkg_dict, chunks)
+        except Exception as e:
+            log.error("An error occured during indexing process: {}".format(e))
 
 
 def _get_handler(res):
@@ -73,32 +70,48 @@ def _get_handler(res):
     return handlers[-1] if handlers else []
 
 
-def _get_filepath_for_resource(res):
+class StaticPath:
+    def __init__(self, path):
+        self.path = path
+
+    def __enter__(self):
+        return self.path
+
+    def __exit__(self, type, value, traceback):
+        pass
+
+
+class RemovablePath(StaticPath):
+    def __exit__(self, type, value, traceback):
+        os.remove(self.path)
+
+
+def _get_removable_filepath_for_resource(res):
     """Returns a filepath for a resource that will be indexed"""
-    res_id = res['id']
-    res_url = res['url']
+    res_id = res["id"]
+    res_url = res["url"]
 
     if res["url_type"] == "upload":
         uploader = get_resource_uploader(res)
 
         # TODO temporary workaround for ckanext-cloudstorage support
-        if p.plugin_loaded('cloudstorage'):
+        if p.plugin_loaded("cloudstorage"):
             url = uploader.get_url_from_filename(res_id, res_url)
             filepath = _download_remote_file(res_id, url)
-            return filepath
+            return RemovablePath(filepath)
 
         path = uploader.get_path(res_id)
         if not os.path.exists(path):
-            log.warn('Resource "{res_id}" refers to unexisting path "{path}"')
+            log.warn('Resource "%s" refers to unexisting path "%s"', res, path)
             return
 
-        return path
+        return StaticPath(path)
 
     if not tk.asbool(tk.config.get(CONFIG_ALLOW_REMOTE)):
         return
 
     filepath = _download_remote_file(res_id, res_url)
-    return filepath
+    return RemovablePath(filepath)
 
 
 def _download_remote_file(res_id, url):
@@ -110,14 +123,18 @@ def _download_remote_file(res_id, url):
         resp = requests.get(url, timeout=2, allow_redirects=True, stream=True)
     except Exception as e:
         log.warn(
-            "Unable to make GET request for resource {} with url <{}>: {}".format(res_id, url, e)
+            "Unable to make GET request for resource {} with url <{}>: {}".format(
+                res_id, url, e
+            )
         )
         return
 
     if not resp.ok:
         log.warn(
             "Unsuccessful GET request for resource {} with url <{}>. \
-            Status code: {}".format(res_id, url, resp.status_code),
+            Status code: {}".format(
+                res_id, url, resp.status_code
+            ),
         )
 
         return
@@ -136,7 +153,9 @@ def _download_remote_file(res_id, url):
                     dest.write(chunk)
         except requests.exceptions.RequestException as e:
             log.error(
-                "Cannot index remote resource {} with url <{}>: {}".format(res_id, url, e)
+                "Cannot index remote resource {} with url <{}>: {}".format(
+                    res_id, url, e
+                )
             )
             os.remove(dest.name)
             return
@@ -150,15 +169,14 @@ def _get_remote_res_max_size():
 def merge_text_chunks(pkg_dict, chunks):
     text_index = pkg_dict.setdefault("text", [])
     index_field = tk.config.get(CONFIG_INDEX_FIELD)
-    str_index = ''
+    str_index = ""
 
     for chunk in chunks:
         text_index.append(chunk)
         if index_field:
             str_index += str(chunk)
-
     if str_index:
-        pkg_dict[index_field] = (pkg_dict.get(index_field) or '') + ' ' + str_index
+        pkg_dict[index_field] = (pkg_dict.get(index_field) or "") + " " + str_index
 
 
 def extract_pdf(path):
@@ -168,11 +186,11 @@ def extract_pdf(path):
         with open(path, "rb") as file:
             pdf_content = pdftotext.PDF(file)
     except Exception as e:
-        log.warn(
-            "Problem during extracting content from <{}>".format(path), exc_info=e)
+        log.warn("Problem during extracting content from <{}>".format(path), exc_info=e)
         pdf_content = []
     for page in pdf_content:
-        yield page
+        # normalize null-terminated strings that appear in old versions of poppler
+        yield page.rstrip("\x00")
 
 
 def extract_plain(path):
