@@ -74,6 +74,9 @@ class StaticPath:
     def __init__(self, path):
         self.path = path
 
+    def __bool__(self):
+        return bool(self.path)
+
     def __enter__(self):
         return self.path
 
