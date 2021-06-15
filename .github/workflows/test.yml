@@ -30,12 +30,15 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: Install PDF tools
+      run: |
+        apt install libpoppler-cpp-dev
     - name: Install requirements
       # Install any extra requirements your extension has here (dev requirements, other extensions etc)
       run: |
         pip install -r requirements.txt
         pip install -r dev-requirements.txt
-        pip install -e .
+        pip install -e '.[all]'
     - name: Setup extension
       # Extra initialization steps
       run: |
