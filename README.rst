@@ -1,9 +1,5 @@
-
-.. image:: https://travis-ci.org/DataShades/ckanext-resource_indexer.svg?branch=master
-    :target: https://travis-ci.org/DataShades/ckanext-resource_indexer
-
-.. image:: https://codecov.io/gh/DataShades/ckanext-resource_indexer/branch/master/graph/badge.svg
-  :target: https://codecov.io/gh/DataShades/ckanext-resource_indexer
+.. image:: https://github.com/DataShades/ckanext-resource_indexer/actions/workflows/test.yml/badge.svg
+    :target: https://github.com/DataShades/ckanext-resource_indexer/actions/workflows/test.yml
 
 ========================
 ckanext-resource_indexer
