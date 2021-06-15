@@ -32,7 +32,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: Install PDF tools
       run: |
-        apt install libpoppler-cpp-dev
+        apt-get install libpoppler-cpp-dev
     - name: Install requirements
       # Install any extra requirements your extension has here (dev requirements, other extensions etc)
       run: |
