@@ -1,11 +1,13 @@
 """Tests for plugin.py."""
 
 import os
+from ckan.lib.search.query import QUERY_FIELDS
 import pytest
+from unittest import mock
 
+import pysolr
 import ckan.tests.helpers as helpers
 import ckan.tests.factories as factories
-import ckan.lib.uploader
 import ckanext.resource_indexer.utils as utils
 
 
@@ -74,3 +76,31 @@ class TestPdfIndexer(object):
 
         result = helpers.call_action("package_search", q="Dummy PDF")
         assert result["count"] == 1
+
+
+@pytest.mark.usefixtures("with_plugins")
+@pytest.mark.ckan_config("ckan.plugins", "resource_indexer")
+class TestBoost:
+    def test_default_index_field_is_not_boosted(self, monkeypatch):
+        fn = mock.MagicMock()
+        monkeypatch.setattr(pysolr.Solr, "search", fn)
+        helpers.call_action("package_search", q="hello")
+        assert fn.call_args.kwargs["qf"] == QUERY_FIELDS
+
+    @pytest.mark.ckan_config(utils.CONFIG_INDEX_FIELD, "custom_field")
+    def test_custom_index_field_without_explicit_boost_ignored(self, monkeypatch):
+        fn = mock.MagicMock()
+        monkeypatch.setattr(pysolr.Solr, "search", fn)
+        helpers.call_action("package_search", q="hello")
+        assert fn.call_args.kwargs["qf"] == QUERY_FIELDS
+
+    @pytest.mark.ckan_config(utils.CONFIG_INDEX_FIELD, "custom_field")
+    @pytest.mark.ckan_config(utils.CONFIG_BOOST, 2)
+    def test_boosted_field(self, monkeypatch):
+        fn = mock.MagicMock()
+        monkeypatch.setattr(pysolr.Solr, "search", fn)
+        helpers.call_action("package_search", q="hello")
+        assert fn.call_args.kwargs["qf"] == QUERY_FIELDS + " custom_field^2"
+
+        helpers.call_action("package_search", q="hello", qf="name^1")
+        assert fn.call_args.kwargs["qf"] == "name^1 custom_field^2"

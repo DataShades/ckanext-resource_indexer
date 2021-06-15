@@ -37,6 +37,13 @@ Config Settings
     # (optional, default: None)
     ckanext.resoruce_indexer.index_field = extras_res_attachment
 
+    # Boost matches by resource's content. Set values greater that 1 in order #
+    # to promote such matches and value between 0 and 1 in order to put such #
+    # matches further in search results. Works only when using custom index
+    # field(ckanext.resoruce_indexer.index_field)
+    # (optional, default: 1)
+    ckanext.resoruce_indexer.search_boost = 0.5
+
 ------------------------
 Development Installation
 ------------------------

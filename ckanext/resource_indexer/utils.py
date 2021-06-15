@@ -17,7 +17,13 @@ CONFIG_INDEX_FIELD = "ckanext.resoruce_indexer.index_field"
 CONFIG_MAX_REMOTE_SIZE = "ckanext.resource_indexer.max_remote_size"
 CONFIG_ALLOW_REMOTE = "ckanext.resource_indexer.allow_remote"
 CONFIG_INDEXABLE_FORMATS = "ckanext.resource_indexer.indexable_formats"
+CONFIG_BOOST = "ckanext.resoruce_indexer.search_boost"
 
+DEFAULT_INDEX_FIELD = None
+DEFAULT_MAX_REMOTE_SIZE = 4
+DEFAULT_ALLOW_REMOTE = False
+DEFAULT_INDEXABLE_FORMATS = None
+DEFAULT_BOOST = 1
 
 class Weight(enum.IntEnum):
     skip = 0
@@ -33,7 +39,7 @@ def select_indexable_resources(resources):
     Filter out resources with unsupported formats
     Returns a list of resources dicts
     """
-    supported = tk.aslist(tk.config.get(CONFIG_INDEXABLE_FORMATS))
+    supported = tk.aslist(tk.config.get(CONFIG_INDEXABLE_FORMATS, DEFAULT_INDEXABLE_FORMATS))
     return [res for res in resources if res.get("format", "").lower() in supported]
 
 
@@ -67,7 +73,7 @@ def _get_handler(res):
         if plugin and weight > 0
     ]
 
-    return handlers[-1] if handlers else []
+    return handlers[-1] if handlers else None
 
 
 class StaticPath:
@@ -110,7 +116,7 @@ def _get_removable_filepath_for_resource(res):
 
         return StaticPath(path)
 
-    if not tk.asbool(tk.config.get(CONFIG_ALLOW_REMOTE)):
+    if not tk.asbool(tk.config.get(CONFIG_ALLOW_REMOTE, DEFAULT_ALLOW_REMOTE)):
         return
 
     filepath = _download_remote_file(res_id, res_url)
@@ -166,18 +172,23 @@ def _download_remote_file(res_id, url):
 
 
 def _get_remote_res_max_size():
-    return tk.asint(tk.config.get(CONFIG_MAX_REMOTE_SIZE, 4)) * 1024 * 1024
+    return tk.asint(tk.config.get(CONFIG_MAX_REMOTE_SIZE, DEFAULT_MAX_REMOTE_SIZE)) * 1024 * 1024
 
 
 def merge_text_chunks(pkg_dict, chunks):
     text_index = pkg_dict.setdefault("text", [])
-    index_field = tk.config.get(CONFIG_INDEX_FIELD)
+    if isinstance(text_index, str):
+        text_index = [text_index]
+        pkg_dict["text"] = text_index
+
+    index_field = tk.config.get(CONFIG_INDEX_FIELD, DEFAULT_INDEX_FIELD)
     str_index = ""
 
     for chunk in chunks:
-        text_index.append(chunk)
         if index_field:
             str_index += str(chunk)
+        else:
+            text_index.append(chunk)
     if str_index:
         pkg_dict[index_field] = (pkg_dict.get(index_field) or "") + " " + str_index
 
@@ -200,3 +211,10 @@ def extract_plain(path):
     with open(path) as f:
         content = f.read()
     yield content
+
+def get_boost_string():
+    field = tk.config.get(CONFIG_INDEX_FIELD, DEFAULT_INDEX_FIELD)
+    boost = tk.asint(tk.config.get(CONFIG_BOOST, DEFAULT_BOOST))
+    if not field or boost == 1:
+        return
+    return f"{field}^{boost}"

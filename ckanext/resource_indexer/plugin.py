@@ -3,6 +3,8 @@ import logging
 import json
 
 import ckan.plugins as p
+from ckan.lib.search.query import QUERY_FIELDS
+
 import ckanext.resource_indexer.interface as interface
 import ckanext.resource_indexer.utils as utils
 
@@ -20,6 +22,13 @@ class ResourceIndexerPlugin(p.SingletonPlugin):
         for res in utils.select_indexable_resources(resources):
             utils.index_resource(res, pkg_dict)
         return pkg_dict
+
+    def before_search(self, search_params):
+        boost = utils.get_boost_string()
+        if boost:
+            search_params.setdefault("qf", QUERY_FIELDS)
+            search_params["qf"] += " " + boost
+        return search_params
 
 
 class PdfResourceIndexerPlugin(p.SingletonPlugin):
