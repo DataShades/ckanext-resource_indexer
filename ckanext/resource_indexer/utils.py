@@ -23,7 +23,7 @@ DEFAULT_INDEX_FIELD = None
 DEFAULT_MAX_REMOTE_SIZE = 4
 DEFAULT_ALLOW_REMOTE = False
 DEFAULT_INDEXABLE_FORMATS = None
-DEFAULT_BOOST = 1
+DEFAULT_BOOST = 1.0
 
 class Weight(enum.IntEnum):
     skip = 0
@@ -214,7 +214,14 @@ def extract_plain(path):
 
 def get_boost_string():
     field = tk.config.get(CONFIG_INDEX_FIELD, DEFAULT_INDEX_FIELD)
-    boost = tk.asint(tk.config.get(CONFIG_BOOST, DEFAULT_BOOST))
+    try:
+        boost = float(tk.config.get(CONFIG_BOOST, DEFAULT_BOOST))
+    except (TypeError, ValueError) as e:
+        log.error("Cannot parse %s: %s", CONFIG_BOOST, e)
+        boost = DEFAULT_BOOST
     if not field or boost == 1:
         return
+    if boost.is_integer():
+        boost = int(boost)
+
     return f"{field}^{boost}"
