@@ -4,10 +4,3 @@ preview = true
 
 [tool.ipdb]
 
-[tool.towncrier]
-issue_format = ""
-directory = "changes"
-package = "ckanext.resource_indexer"
-package_dir = "ckanext"
-filename = "CHANGELOG.rst"
-name = "ckanext-resource_indexer"
