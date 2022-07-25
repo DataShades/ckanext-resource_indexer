@@ -12,7 +12,9 @@ import ckanext.resource_indexer.utils as utils
 
 
 @pytest.mark.usefixtures("clean_db", "clean_index", "with_plugins")
-@pytest.mark.ckan_config("ckan.plugins", "resource_indexer plain_resource_indexer")
+@pytest.mark.ckan_config(
+    "ckan.plugins", "resource_indexer plain_resource_indexer"
+)
 class TestPlainIndexer(object):
     def test_resource_is_not_indexed_without_explicit_config_options(
         self, create_with_upload
@@ -29,7 +31,9 @@ class TestPlainIndexer(object):
         result = helpers.call_action("package_search", q="hello world")
         assert result["count"] == 0
 
-    @pytest.mark.ckan_config("ckanext.resource_indexer.indexable_formats", "txt json")
+    @pytest.mark.ckan_config(
+        "ckanext.resource_indexer.indexable_formats", "txt json"
+    )
     def test_resource_is_indexed_when_format_enabled(self, create_with_upload):
         """Resources with supported formats are indexed.
 
@@ -48,10 +52,16 @@ class TestPlainIndexer(object):
         result = helpers.call_action("package_search", q="newer will be here")
         assert result["count"] == 0
         create_with_upload(
-            "not here yet", "file.json", format="json", package_id=dataset["id"]
+            "not here yet",
+            "file.json",
+            format="json",
+            package_id=dataset["id"],
         )
         create_with_upload(
-            "newer will be here", "file.html", format="html", package_id=dataset["id"]
+            "newer will be here",
+            "file.html",
+            format="html",
+            package_id=dataset["id"],
         )
 
         result = helpers.call_action("package_search", q="hello world")
@@ -63,9 +73,13 @@ class TestPlainIndexer(object):
 
 
 @pytest.mark.usefixtures("clean_db", "clean_index", "with_plugins")
-@pytest.mark.ckan_config("ckan.plugins", "resource_indexer pdf_resource_indexer")
+@pytest.mark.ckan_config(
+    "ckan.plugins", "resource_indexer pdf_resource_indexer"
+)
 class TestPdfIndexer(object):
-    @pytest.mark.ckan_config("ckanext.resource_indexer.indexable_formats", "pdf")
+    @pytest.mark.ckan_config(
+        "ckanext.resource_indexer.indexable_formats", "pdf"
+    )
     def test_pdf_is_indexed(self, create_with_upload):
         dataset = factories.Dataset()
         path = os.path.join(os.path.dirname(__file__), "data/example.pdf")
@@ -88,7 +102,9 @@ class TestBoost:
         assert fn.call_args.kwargs["qf"] == QUERY_FIELDS
 
     @pytest.mark.ckan_config(utils.CONFIG_INDEX_FIELD, "custom_field")
-    def test_custom_index_field_without_explicit_boost_ignored(self, monkeypatch):
+    def test_custom_index_field_without_explicit_boost_ignored(
+        self, monkeypatch
+    ):
         fn = mock.MagicMock()
         monkeypatch.setattr(pysolr.Solr, "search", fn)
         helpers.call_action("package_search", q="hello")

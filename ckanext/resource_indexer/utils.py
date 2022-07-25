@@ -25,6 +25,7 @@ DEFAULT_ALLOW_REMOTE = False
 DEFAULT_INDEXABLE_FORMATS = None
 DEFAULT_BOOST = 1.0
 
+
 class Weight(enum.IntEnum):
     skip = 0
     fallback = 10
@@ -39,8 +40,12 @@ def select_indexable_resources(resources):
     Filter out resources with unsupported formats
     Returns a list of resources dicts
     """
-    supported = tk.aslist(tk.config.get(CONFIG_INDEXABLE_FORMATS, DEFAULT_INDEXABLE_FORMATS))
-    return [res for res in resources if res.get("format", "").lower() in supported]
+    supported = tk.aslist(
+        tk.config.get(CONFIG_INDEXABLE_FORMATS, DEFAULT_INDEXABLE_FORMATS)
+    )
+    return [
+        res for res in resources if res.get("format", "").lower() in supported
+    ]
 
 
 def index_resource(res, pkg_dict):
@@ -132,18 +137,15 @@ def _download_remote_file(res_id, url):
         resp = requests.get(url, timeout=2, allow_redirects=True, stream=True)
     except Exception as e:
         log.warn(
-            "Unable to make GET request for resource {} with url <{}>: {}".format(
-                res_id, url, e
-            )
+            "Unable to make GET request for resource {} with url <{}>: {}"
+            .format(res_id, url, e)
         )
         return
 
     if not resp.ok:
         log.warn(
-            "Unsuccessful GET request for resource {} with url <{}>. \
-            Status code: {}".format(
-                res_id, url, resp.status_code
-            ),
+            "Unsuccessful GET request for resource {} with url <{}>.          "
+            "   Status code: {}".format(res_id, url, resp.status_code),
         )
 
         return
@@ -172,7 +174,13 @@ def _download_remote_file(res_id, url):
 
 
 def _get_remote_res_max_size():
-    return tk.asint(tk.config.get(CONFIG_MAX_REMOTE_SIZE, DEFAULT_MAX_REMOTE_SIZE)) * 1024 * 1024
+    return (
+        tk.asint(
+            tk.config.get(CONFIG_MAX_REMOTE_SIZE, DEFAULT_MAX_REMOTE_SIZE)
+        )
+        * 1024
+        * 1024
+    )
 
 
 def merge_text_chunks(pkg_dict, chunks):
@@ -190,7 +198,9 @@ def merge_text_chunks(pkg_dict, chunks):
         else:
             text_index.append(chunk)
     if str_index:
-        pkg_dict[index_field] = (pkg_dict.get(index_field) or "") + " " + str_index
+        pkg_dict[index_field] = (
+            (pkg_dict.get(index_field) or "") + " " + str_index
+        )
 
 
 def extract_pdf(path):
@@ -200,7 +210,10 @@ def extract_pdf(path):
         with open(path, "rb") as file:
             pdf_content = pdftotext.PDF(file)
     except Exception as e:
-        log.warn("Problem during extracting content from <{}>".format(path), exc_info=e)
+        log.warn(
+            "Problem during extracting content from <{}>".format(path),
+            exc_info=e,
+        )
         pdf_content = []
     for page in pdf_content:
         # normalize null-terminated strings that appear in old versions of poppler
@@ -211,6 +224,7 @@ def extract_plain(path):
     with open(path) as f:
         content = f.read()
     yield content
+
 
 def get_boost_string():
     field = tk.config.get(CONFIG_INDEX_FIELD, DEFAULT_INDEX_FIELD)
