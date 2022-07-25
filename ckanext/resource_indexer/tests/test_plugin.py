@@ -7,25 +7,22 @@ from unittest import mock
 
 import pysolr
 import ckan.tests.helpers as helpers
-import ckan.tests.factories as factories
 import ckanext.resource_indexer.utils as utils
 
-
-@pytest.mark.usefixtures("clean_db", "clean_index", "with_plugins")
+@pytest.mark.usefixtures("with_plugins", "clean_db", "clean_index")
 @pytest.mark.ckan_config(
     "ckan.plugins", "resource_indexer plain_resource_indexer"
 )
 class TestPlainIndexer(object):
     def test_resource_is_not_indexed_without_explicit_config_options(
-        self, create_with_upload
+            self, create_with_upload, package
     ):
         """By default, no files are indexed.
 
         Every format must be explicitely marked as indexable using CKAN config
         """
-        dataset = factories.Dataset()
         create_with_upload(
-            "hello world", "file.txt", format="txt", package_id=dataset["id"]
+            "hello world", "file.txt", format="txt", package_id=package["id"]
         )
 
         result = helpers.call_action("package_search", q="hello world")
@@ -34,16 +31,15 @@ class TestPlainIndexer(object):
     @pytest.mark.ckan_config(
         "ckanext.resource_indexer.indexable_formats", "txt json"
     )
-    def test_resource_is_indexed_when_format_enabled(self, create_with_upload):
+    def test_resource_is_indexed_when_format_enabled(self, create_with_upload, package):
         """Resources with supported formats are indexed.
 
         Multiple resources can be indexed as a part of the single
         dataset. Unlisted formats still ignored.
 
         """
-        dataset = factories.Dataset()
         create_with_upload(
-            "hello world", "file.txt", format="txt", package_id=dataset["id"]
+            "hello world", "file.txt", format="txt", package_id=package["id"]
         )
         result = helpers.call_action("package_search", q="hello world")
         assert result["count"] == 1
@@ -55,13 +51,13 @@ class TestPlainIndexer(object):
             "not here yet",
             "file.json",
             format="json",
-            package_id=dataset["id"],
+            package_id=package["id"],
         )
         create_with_upload(
             "newer will be here",
             "file.html",
             format="html",
-            package_id=dataset["id"],
+            package_id=package["id"],
         )
 
         result = helpers.call_action("package_search", q="hello world")
@@ -72,7 +68,7 @@ class TestPlainIndexer(object):
         assert result["count"] == 0
 
 
-@pytest.mark.usefixtures("clean_db", "clean_index", "with_plugins")
+@pytest.mark.usefixtures("with_plugins", "clean_db", "clean_index")
 @pytest.mark.ckan_config(
     "ckan.plugins", "resource_indexer pdf_resource_indexer"
 )
@@ -80,12 +76,11 @@ class TestPdfIndexer(object):
     @pytest.mark.ckan_config(
         "ckanext.resource_indexer.indexable_formats", "pdf"
     )
-    def test_pdf_is_indexed(self, create_with_upload):
-        dataset = factories.Dataset()
+    def test_pdf_is_indexed(self, create_with_upload, package):
         path = os.path.join(os.path.dirname(__file__), "data/example.pdf")
         with open(path, "rb") as pdf:
             create_with_upload(
-                pdf.read(), "file.pdf", format="pdf", package_id=dataset["id"]
+                pdf.read(), "file.pdf", format="pdf", package_id=package["id"]
             )
 
         result = helpers.call_action("package_search", q="Dummy PDF")

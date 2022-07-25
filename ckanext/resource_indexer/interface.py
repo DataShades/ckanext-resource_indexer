@@ -1,43 +1,53 @@
 # -*- coding: utf-8 -*-
+from __future__ import annotations
+from typing import Any
 
 import ckan.plugins.interfaces as interfaces
-
+from ckanext.resource_indexer.utils import Weight
 
 class IResourceIndexer(interfaces.Interface):
-    def get_resource_indexer_weight(res):
-        """Defines priority of handler for resource.
+    def get_resource_indexer_weight(self, resource: dict[str, Any]) -> int:
+        """Define priority of the indexer
 
-        :returns: priority of current plugin
-        :rtype: int
+        Args:
+            resource: resource's details
+
+        Returns:
+            the weight of the indexer
+            Expected values:
+               0: skip handler
+               10: use handler if no other handlers found
+               20: use handler as a default one for the resource
+               30: use handler as an optimal one for the resource
+               40: use handler as a special-case handler for the resource
+               50: ignore all the other handlers and use this one instead
         """
-        import ckanext.resource_indexer.utils as utils
+        return Weight.fallback
 
-        return utils.Weight.fallback
+    def extract_indexable_chunks(self, path: str) -> Any:
+        """Extract indexable data from the resource
 
-    def extract_indexable_chunks(self, path):
-        """Convert resource dictionary into chunks of indexable data.
+        The result can have any form as long as it can be merged into the
+        package dictionary by implementation of `merge_chunk_into_index`.
 
-        Chunks can have any form as long as they can be merged into
-        package dictionary by implementation of
-        IResourceIndexer.merge_chunk_into_index.
+        Args:
+            path: path to resource file
 
-
-        :param path: path to resource file
-        :type path: string
-
-        :returns: iterable of all meaningfuld pieces of data
-        :rtype: iterable
+        Returns:
+            all meaningfuld pieces of data with no type assumption
 
         """
         return []
 
-    def merge_chunks_into_index(self, pkg_dict, chunks):
-        """Merge iterable into index.
+    def merge_chunks_into_index(self, pkg_dict: dict[str, Any], chunks: Any):
+        """Merge data into the package dictionary.
 
-        :param pkg_dict: package that is going to be indexed
-        :type pkg_dict: dictionary
 
-        :param chunks: collection of data fragments extracted from resource
-        :type chunks: iterable
+        Args:
+            pkg_dict: package that is going to be indexed
+            chunks: collection of data fragments extracted from resource
+
+        Returns:
+            all meaningfuld pieces of data with no type assumption
         """
         pass

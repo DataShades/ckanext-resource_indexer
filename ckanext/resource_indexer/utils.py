@@ -1,15 +1,20 @@
+from __future__ import annotations
+
 import logging
 import os
 import tempfile
 import enum
+import json
+from typing import Any, Iterable, Optional, TypeVar
 
 import requests
+from werkzeug.utils import import_string
 
 import ckan.plugins as p
 import ckan.plugins.toolkit as tk
 from ckan.lib.uploader import get_resource_uploader
 
-from ckanext.resource_indexer.interface import IResourceIndexer
+TResourceDict = TypeVar("TResourceDict", bound="dict[str, Any]")
 
 log = logging.getLogger(__name__)
 
@@ -18,12 +23,17 @@ CONFIG_MAX_REMOTE_SIZE = "ckanext.resource_indexer.max_remote_size"
 CONFIG_ALLOW_REMOTE = "ckanext.resource_indexer.allow_remote"
 CONFIG_INDEXABLE_FORMATS = "ckanext.resource_indexer.indexable_formats"
 CONFIG_BOOST = "ckanext.resoruce_indexer.search_boost"
+CONFIG_JSON_KEY = "ckanext.resoruce_indexer.json.key_processor"
+CONFIG_JSON_VALUE = "ckanext.resoruce_indexer.json.value_processor"
+
 
 DEFAULT_INDEX_FIELD = None
 DEFAULT_MAX_REMOTE_SIZE = 4
 DEFAULT_ALLOW_REMOTE = False
 DEFAULT_INDEXABLE_FORMATS = None
 DEFAULT_BOOST = 1.0
+DEFAULT_JSON_KEY = "builtins:str"
+DEFAULT_JSON_VALUE = "builtins:str"
 
 
 class Weight(enum.IntEnum):
@@ -35,24 +45,29 @@ class Weight(enum.IntEnum):
     override = 50
 
 
-def select_indexable_resources(resources):
-    """
-    Filter out resources with unsupported formats
-    Returns a list of resources dicts
+def select_indexable_resources(resources: Iterable[TResourceDict]) -> Iterable[TResourceDict]:
+    """Select resources that supports indexation.
+
+    Returns:
+        indexable resources
+
     """
     supported = tk.aslist(
         tk.config.get(CONFIG_INDEXABLE_FORMATS, DEFAULT_INDEXABLE_FORMATS)
     )
-    return [
-        res for res in resources if res.get("format", "").lower() in supported
-    ]
+    for res in resources:
+        if res.get("format", "").lower() in supported:
+            yield res
 
 
-def index_resource(res, pkg_dict):
+def index_resource(res: dict[str, Any], pkg_dict: dict[str, Any]):
     removable_path = _get_removable_filepath_for_resource(res)
     if not removable_path:
         return
+
     with removable_path as path:
+        assert path, "Path cannot be missing"
+
         try:
             handler = _get_handler(res)
             if handler:
@@ -67,6 +82,7 @@ def _get_handler(res):
     Handler is a plugin that will provide as with method to index resource
     Based on Weight we are returning the most valuable one
     """
+    from ckanext.resource_indexer.interface import IResourceIndexer
     handlers = [
         plugin
         for (weight, plugin) in sorted(
@@ -82,7 +98,7 @@ def _get_handler(res):
 
 
 class StaticPath:
-    def __init__(self, path):
+    def __init__(self, path: Optional[str]):
         self.path = path
 
     def __bool__(self):
@@ -97,10 +113,11 @@ class StaticPath:
 
 class RemovablePath(StaticPath):
     def __exit__(self, type, value, traceback):
-        os.remove(self.path)
+        if self.path:
+            os.remove(self.path)
 
 
-def _get_removable_filepath_for_resource(res):
+def _get_removable_filepath_for_resource(res) -> Optional[StaticPath]:
     """Returns a filepath for a resource that will be indexed"""
     res_id = res["id"]
     res_url = res["url"]
@@ -128,7 +145,7 @@ def _get_removable_filepath_for_resource(res):
     return RemovablePath(filepath)
 
 
-def _download_remote_file(res_id, url):
+def _download_remote_file(res_id: str, url: str) -> Optional[str]:
     """
     Downloads remote resource and save it as temporary file
     Returns path to this file
@@ -156,6 +173,7 @@ def _download_remote_file(res_id, url):
         log.warn("Incorrect Content-length header from url <{}>".format(url))
         return
 
+
     if 0 < size < _get_remote_res_max_size():
         dest = tempfile.NamedTemporaryFile(delete=False)
         try:
@@ -178,32 +196,30 @@ def _get_remote_res_max_size():
         tk.asint(
             tk.config.get(CONFIG_MAX_REMOTE_SIZE, DEFAULT_MAX_REMOTE_SIZE)
         )
-        * 1024
-        * 1024
+        * 1024 ** 2
     )
 
 
 def merge_text_chunks(pkg_dict, chunks):
+    index_field = tk.config.get(CONFIG_INDEX_FIELD, DEFAULT_INDEX_FIELD)
+    if index_field:
+        str_index = "".join(map(str, chunks))
+        if str_index:
+            pkg_dict[index_field] = (
+                (pkg_dict.get(index_field) or "") + " " + str_index
+            )
+        return
+
     text_index = pkg_dict.setdefault("text", [])
     if isinstance(text_index, str):
         text_index = [text_index]
         pkg_dict["text"] = text_index
 
-    index_field = tk.config.get(CONFIG_INDEX_FIELD, DEFAULT_INDEX_FIELD)
-    str_index = ""
-
     for chunk in chunks:
-        if index_field:
-            str_index += str(chunk)
-        else:
-            text_index.append(chunk)
-    if str_index:
-        pkg_dict[index_field] = (
-            (pkg_dict.get(index_field) or "") + " " + str_index
-        )
+        text_index.append(chunk)
 
 
-def extract_pdf(path):
+def extract_pdf(path) -> Iterable[str]:
     import pdftotext
 
     try:
@@ -220,10 +236,27 @@ def extract_pdf(path):
         yield page.rstrip("\x00")
 
 
-def extract_plain(path):
+def extract_plain(path) -> Iterable[str]:
     with open(path) as f:
         content = f.read()
     yield content
+
+
+def extract_json(path) -> dict[str, Any]:
+    with open(path) as f:
+        try:
+            data = json.load(f)
+        except ValueError:
+            log.exception("Cannot index JSON resource at %s", path)
+            return {}
+
+    key = import_string(tk.config.get(CONFIG_JSON_KEY, DEFAULT_JSON_KEY))
+    value = import_string(tk.config.get(CONFIG_JSON_VALUE, DEFAULT_JSON_VALUE))
+
+    return {
+        key(k): value(v)
+        for k, v in data.itemx()
+    }
 
 
 def get_boost_string():
