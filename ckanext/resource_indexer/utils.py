@@ -27,6 +27,8 @@ CONFIG_JSON_KEY = "ckanext.resoruce_indexer.json.key_processor"
 CONFIG_JSON_VALUE = "ckanext.resoruce_indexer.json.value_processor"
 
 
+
+
 DEFAULT_INDEX_FIELD = None
 DEFAULT_MAX_REMOTE_SIZE = 4
 DEFAULT_ALLOW_REMOTE = False
@@ -205,7 +207,8 @@ def merge_text_chunks(pkg_dict, chunks):
     if index_field:
         str_index = "".join(map(str, chunks))
         if str_index:
-            pkg_dict[index_field] = (
+            pkg_dict.setdefault(index_field, "")
+            pkg_dict[index_field] += (
                 (pkg_dict.get(index_field) or "") + " " + str_index
             )
         return
@@ -255,7 +258,7 @@ def extract_json(path) -> dict[str, Any]:
 
     return {
         key(k): value(v)
-        for k, v in data.itemx()
+        for k, v in data.items()
     }
 
 

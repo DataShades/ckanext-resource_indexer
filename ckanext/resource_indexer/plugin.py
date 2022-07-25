@@ -90,5 +90,6 @@ class JsonResourceIndexerPlugin(p.SingletonPlugin):
 
     def merge_chunks_into_index(self, pkg_dict: dict[str, Any], chunks: dict[str, Any]):
         pkg_dict.update(chunks)
+
         if tk.config.get(CONFIG_JSON_AS_TEXT, DEFAULT_JSON_AS_TEXT):
-            utils.merge_text_chunks(pkg_dict, [f"{k}: {v}" for k, v in chunks.items()])
+            utils.merge_text_chunks(pkg_dict, [f" {k}: {v}" for k, v in chunks.items()])
