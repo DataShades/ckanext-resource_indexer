@@ -91,9 +91,10 @@ def _get_handler(res):
             [
                 (plugin.get_resource_indexer_weight(res), plugin)
                 for plugin in p.PluginImplementations(IResourceIndexer)
-            ]
+            ],
+            key=lambda pair: pair[0]
         )
-        if plugin and weight > 0
+        if plugin and weight > Weight.skip
     ]
 
     return handlers[-1] if handlers else None
