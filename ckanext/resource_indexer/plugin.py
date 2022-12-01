@@ -3,10 +3,10 @@ from __future__ import annotations
 
 import logging
 import json
+
 from typing import Any
 
 import ckan.plugins as p
-import ckan.plugins.toolkit as tk
 from ckan.lib.search.query import QUERY_FIELDS
 
 import ckanext.resource_indexer.interface as interface
@@ -23,6 +23,9 @@ class ResourceIndexerPlugin(p.SingletonPlugin):
     # IPackageController
 
     def before_dataset_index(self, pkg_dict):
+        if utils.bypass_indexation():
+            return pkg_dict
+
         resources = json.loads(pkg_dict["validated_data_dict"]).get(
             "resources", []
         )

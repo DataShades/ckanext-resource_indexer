@@ -7,6 +7,8 @@ from unittest import mock
 
 import pysolr
 import ckan.tests.helpers as helpers
+from ckan.lib.search import rebuild
+
 from ckanext.resource_indexer import config
 
 
@@ -15,6 +17,21 @@ from ckanext.resource_indexer import config
     "ckan.plugins", "resource_indexer plain_resource_indexer"
 )
 class TestPlainIndexer(object):
+    @mock.patch("ckanext.resource_indexer.utils.select_indexable_resources")
+    def test_bypassing_indexation(self, selector, monkeypatch, package):
+        assert selector.call_count == 0
+
+        rebuild(package["id"])
+        assert selector.call_count == 1
+
+        monkeypatch.setenv("CKANEXT_RESOURCE_INDEXER_BYPASS", "1")
+        rebuild(package["id"])
+        assert selector.call_count == 1
+
+        monkeypatch.setenv("CKANEXT_RESOURCE_INDEXER_BYPASS", "")
+        rebuild(package["id"])
+        assert selector.call_count == 2
+
     def test_resource_is_not_indexed_without_explicit_config_options(
         self, create_with_upload, package
     ):

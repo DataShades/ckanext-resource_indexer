@@ -5,7 +5,7 @@ import os
 import tempfile
 import enum
 import json
-from typing import Any, Iterable, Optional, TypeVar
+from typing import Any, Iterable, Optional
 
 import requests
 
@@ -14,7 +14,6 @@ from ckan.lib.uploader import get_resource_uploader
 
 from . import config
 
-TResourceDict = TypeVar("TResourceDict", bound="dict[str, Any]")
 
 log = logging.getLogger(__name__)
 
@@ -29,8 +28,8 @@ class Weight(enum.IntEnum):
 
 
 def select_indexable_resources(
-    resources: Iterable[TResourceDict],
-) -> Iterable[TResourceDict]:
+    resources: Iterable[dict[str, Any]],
+) -> Iterable[dict[str, Any]]:
     """Select resources that supports indexation.
 
     Returns:
@@ -44,6 +43,9 @@ def select_indexable_resources(
 
 
 def index_resource(res: dict[str, Any], pkg_dict: dict[str, Any]):
+    """Extract the data from resource and merge it into the package.
+
+    """
     removable_path = _get_removable_filepath_for_resource(res)
     if not removable_path:
         return
@@ -61,9 +63,9 @@ def index_resource(res: dict[str, Any], pkg_dict: dict[str, Any]):
 
 
 def _get_handler(res):
-    """
-    Handler is a plugin that will provide as with method to index resource
-    Based on Weight we are returning the most valuable one
+    """Handler is a plugin that provides a method to index resource.
+
+    Based on Weight we are returning the most valuable one.
     """
     from ckanext.resource_indexer.interface import IResourceIndexer
 
@@ -83,6 +85,8 @@ def _get_handler(res):
 
 
 class StaticPath:
+    """With-context for a filepath that should not be modified.
+    """
     def __init__(self, path: Optional[str]):
         self.path = path
 
@@ -97,13 +101,34 @@ class StaticPath:
 
 
 class RemovablePath(StaticPath):
+    """With-context for a filepath that must be removed on exit.
+
+    Use it for temporarily downloaded files.
+    """
+
     def __exit__(self, type, value, traceback):
         if self.path:
             os.remove(self.path)
 
 
-def _get_removable_filepath_for_resource(res) -> Optional[StaticPath]:
-    """Returns a filepath for a resource that will be indexed"""
+def _get_removable_filepath_for_resource(res: dict[str, Any]) -> Optional[StaticPath]:
+    """Returns a context with a path to the file owned by the resource.
+
+    The real path can be extracted from the return value using with-statement:
+
+        >>> result = _get_removable_filepath_for_resource(res)
+        >>> if not result:
+        >>>     return
+        >>> with result as path:
+        >>>     do_something_with_path(path)
+
+    If resource contains a link to the remote file(or uploaded via cloudstorage
+    plugin), this file can be downloaded, depending on configuration. After
+    processing, file will be automatically removed.
+
+
+
+    """
     res_id = res["id"]
     res_url = res["url"]
 
@@ -247,3 +272,11 @@ def get_boost_string():
         boost = int(boost)
 
     return f"{field}^{boost}"
+
+
+def bypass_indexation() -> bool:
+    """Check if indexation is disabled.
+
+    May be used for fast index re-builds.
+    """
+    return bool(os.getenv("CKANEXT_RESOURCE_INDEXER_BYPASS"))
