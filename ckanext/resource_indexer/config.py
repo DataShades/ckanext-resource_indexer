@@ -35,14 +35,14 @@ DEFAULT_JSON_VALUE = "builtins:str"
 
 
 def index_json_as_text() -> bool:
-    return tk.asbool(
-        tk.config.get(CONFIG_JSON_AS_TEXT, DEFAULT_JSON_AS_TEXT)
-    )
+    return tk.asbool(tk.config.get(CONFIG_JSON_AS_TEXT, DEFAULT_JSON_AS_TEXT))
+
 
 def indexable_formats() -> list[str]:
     return tk.aslist(
         tk.config.get(CONFIG_INDEXABLE_FORMATS, DEFAULT_INDEXABLE_FORMATS)
     )
+
 
 def allow_remote() -> bool:
     return tk.asbool(tk.config.get(CONFIG_ALLOW_REMOTE, DEFAULT_ALLOW_REMOTE))
@@ -50,7 +50,7 @@ def allow_remote() -> bool:
 
 def max_remote_size() -> int:
     return tk.asint(
-            tk.config.get(CONFIG_MAX_REMOTE_SIZE, DEFAULT_MAX_REMOTE_SIZE)
+        tk.config.get(CONFIG_MAX_REMOTE_SIZE, DEFAULT_MAX_REMOTE_SIZE)
     )
 
 
@@ -60,6 +60,7 @@ def index_field() -> str:
 
 def json_key() -> Callable[[Any], str]:
     return import_string(tk.config.get(CONFIG_JSON_KEY, DEFAULT_JSON_KEY))
+
 
 def json_value() -> Callable[[Any], str]:
     return import_string(tk.config.get(CONFIG_JSON_VALUE, DEFAULT_JSON_VALUE))

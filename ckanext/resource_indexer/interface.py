@@ -5,6 +5,7 @@ from typing import Any
 import ckan.plugins.interfaces as interfaces
 from ckanext.resource_indexer.utils import Weight
 
+
 class IResourceIndexer(interfaces.Interface):
     def get_resource_indexer_weight(self, resource: dict[str, Any]) -> int:
         """Define priority of the indexer

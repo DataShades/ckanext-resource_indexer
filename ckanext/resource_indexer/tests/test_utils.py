@@ -1,12 +1,10 @@
 import pytest
 from ckanext.resource_indexer import utils
 
+
 @pytest.fixture
 def resources():
-    return [
-        {"format": fmt}
-        for fmt in ["", "pdf", "PDF", "TxT", "CSV"]
-    ]
+    return [{"format": fmt} for fmt in ["", "pdf", "PDF", "TxT", "CSV"]]
 
 
 def test_no_indexable_by_default(resources):

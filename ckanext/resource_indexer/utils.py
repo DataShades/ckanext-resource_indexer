@@ -28,7 +28,9 @@ class Weight(enum.IntEnum):
     override = 50
 
 
-def select_indexable_resources(resources: Iterable[TResourceDict]) -> Iterable[TResourceDict]:
+def select_indexable_resources(
+    resources: Iterable[TResourceDict],
+) -> Iterable[TResourceDict]:
     """Select resources that supports indexation.
 
     Returns:
@@ -64,6 +66,7 @@ def _get_handler(res):
     Based on Weight we are returning the most valuable one
     """
     from ckanext.resource_indexer.interface import IResourceIndexer
+
     handlers = [
         plugin
         for (weight, plugin) in sorted(
@@ -71,7 +74,7 @@ def _get_handler(res):
                 (plugin.get_resource_indexer_weight(res), plugin)
                 for plugin in p.PluginImplementations(IResourceIndexer)
             ],
-            key=lambda pair: pair[0]
+            key=lambda pair: pair[0],
         )
         if plugin and weight > Weight.skip
     ]
@@ -155,7 +158,6 @@ def _download_remote_file(res_id: str, url: str) -> Optional[str]:
         log.warn("Incorrect Content-length header from url <{}>".format(url))
         return
 
-
     if 0 < size < _get_remote_res_max_size():
         dest = tempfile.NamedTemporaryFile(delete=False)
         try:
@@ -174,10 +176,7 @@ def _download_remote_file(res_id: str, url: str) -> Optional[str]:
 
 
 def _get_remote_res_max_size():
-    return (
-        config.max_remote_size()
-        * 1024 ** 2
-    )
+    return config.max_remote_size() * 1024**2
 
 
 def merge_text_chunks(pkg_dict, chunks):
@@ -234,10 +233,7 @@ def extract_json(path) -> dict[str, Any]:
     key = config.json_key()
     value = config.json_value()
 
-    return {
-        key(k): value(v)
-        for k, v in data.items()
-    }
+    return {key(k): value(v) for k, v in data.items()}
 
 
 def get_boost_string():

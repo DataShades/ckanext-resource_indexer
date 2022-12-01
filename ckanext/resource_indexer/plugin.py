@@ -78,16 +78,20 @@ class JsonResourceIndexerPlugin(p.SingletonPlugin):
     p.implements(interface.IResourceIndexer)
 
     def get_resource_indexer_weight(self, res: dict[str, Any]) -> int:
-        fmt = res['format'].lower()
-        if fmt == 'json':
+        fmt = res["format"].lower()
+        if fmt == "json":
             return utils.Weight.default
         return utils.Weight.skip
 
     def extract_indexable_chunks(self, path: str) -> dict[str, Any]:
         return utils.extract_json(path)
 
-    def merge_chunks_into_index(self, pkg_dict: dict[str, Any], chunks: dict[str, Any]):
+    def merge_chunks_into_index(
+        self, pkg_dict: dict[str, Any], chunks: dict[str, Any]
+    ):
         pkg_dict.update(chunks)
 
         if config.index_json_as_text():
-            utils.merge_text_chunks(pkg_dict, [f" {k}: {v}" for k, v in chunks.items()])
+            utils.merge_text_chunks(
+                pkg_dict, [f" {k}: {v}" for k, v in chunks.items()]
+            )

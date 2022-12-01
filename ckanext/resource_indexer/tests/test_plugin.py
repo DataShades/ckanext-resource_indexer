@@ -9,13 +9,14 @@ import pysolr
 import ckan.tests.helpers as helpers
 from ckanext.resource_indexer import config
 
+
 @pytest.mark.usefixtures("with_plugins", "clean_db", "clean_index")
 @pytest.mark.ckan_config(
     "ckan.plugins", "resource_indexer plain_resource_indexer"
 )
 class TestPlainIndexer(object):
     def test_resource_is_not_indexed_without_explicit_config_options(
-            self, create_with_upload, package
+        self, create_with_upload, package
     ):
         """By default, no files are indexed.
 
@@ -31,7 +32,9 @@ class TestPlainIndexer(object):
     @pytest.mark.ckan_config(
         "ckanext.resource_indexer.indexable_formats", "txt json"
     )
-    def test_resource_is_indexed_when_format_enabled(self, create_with_upload, package):
+    def test_resource_is_indexed_when_format_enabled(
+        self, create_with_upload, package
+    ):
         """Resources with supported formats are indexed.
 
         Multiple resources can be indexed as a part of the single
