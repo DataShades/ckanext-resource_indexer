@@ -8,34 +8,15 @@ import json
 from typing import Any, Iterable, Optional, TypeVar
 
 import requests
-from werkzeug.utils import import_string
 
 import ckan.plugins as p
-import ckan.plugins.toolkit as tk
 from ckan.lib.uploader import get_resource_uploader
+
+from . import config
 
 TResourceDict = TypeVar("TResourceDict", bound="dict[str, Any]")
 
 log = logging.getLogger(__name__)
-
-CONFIG_INDEX_FIELD = "ckanext.resoruce_indexer.index_field"
-CONFIG_MAX_REMOTE_SIZE = "ckanext.resource_indexer.max_remote_size"
-CONFIG_ALLOW_REMOTE = "ckanext.resource_indexer.allow_remote"
-CONFIG_INDEXABLE_FORMATS = "ckanext.resource_indexer.indexable_formats"
-CONFIG_BOOST = "ckanext.resoruce_indexer.search_boost"
-CONFIG_JSON_KEY = "ckanext.resoruce_indexer.json.key_processor"
-CONFIG_JSON_VALUE = "ckanext.resoruce_indexer.json.value_processor"
-
-
-
-
-DEFAULT_INDEX_FIELD = None
-DEFAULT_MAX_REMOTE_SIZE = 4
-DEFAULT_ALLOW_REMOTE = False
-DEFAULT_INDEXABLE_FORMATS = None
-DEFAULT_BOOST = 1.0
-DEFAULT_JSON_KEY = "builtins:str"
-DEFAULT_JSON_VALUE = "builtins:str"
 
 
 class Weight(enum.IntEnum):
@@ -54,9 +35,7 @@ def select_indexable_resources(resources: Iterable[TResourceDict]) -> Iterable[T
         indexable resources
 
     """
-    supported = tk.aslist(
-        tk.config.get(CONFIG_INDEXABLE_FORMATS, DEFAULT_INDEXABLE_FORMATS)
-    )
+    supported = config.indexable_formats()
     for res in resources:
         if res.get("format", "").lower() in supported:
             yield res
@@ -130,7 +109,7 @@ def _get_removable_filepath_for_resource(res) -> Optional[StaticPath]:
 
         # TODO temporary workaround for ckanext-cloudstorage support
         if p.plugin_loaded("cloudstorage"):
-            url = uploader.get_url_from_filename(res_id, res_url)
+            url = uploader.get_url_from_filename(res_id, res_url)  # type: ignore
             filepath = _download_remote_file(res_id, url)
             return RemovablePath(filepath)
 
@@ -141,7 +120,7 @@ def _get_removable_filepath_for_resource(res) -> Optional[StaticPath]:
 
         return StaticPath(path)
 
-    if not tk.asbool(tk.config.get(CONFIG_ALLOW_REMOTE, DEFAULT_ALLOW_REMOTE)):
+    if not config.allow_remote():
         return
 
     filepath = _download_remote_file(res_id, res_url)
@@ -196,15 +175,13 @@ def _download_remote_file(res_id: str, url: str) -> Optional[str]:
 
 def _get_remote_res_max_size():
     return (
-        tk.asint(
-            tk.config.get(CONFIG_MAX_REMOTE_SIZE, DEFAULT_MAX_REMOTE_SIZE)
-        )
+        config.max_remote_size()
         * 1024 ** 2
     )
 
 
 def merge_text_chunks(pkg_dict, chunks):
-    index_field = tk.config.get(CONFIG_INDEX_FIELD, DEFAULT_INDEX_FIELD)
+    index_field = config.index_field()
     if index_field:
         str_index = "".join(map(str, chunks))
         if str_index:
@@ -254,8 +231,8 @@ def extract_json(path) -> dict[str, Any]:
             log.exception("Cannot index JSON resource at %s", path)
             return {}
 
-    key = import_string(tk.config.get(CONFIG_JSON_KEY, DEFAULT_JSON_KEY))
-    value = import_string(tk.config.get(CONFIG_JSON_VALUE, DEFAULT_JSON_VALUE))
+    key = config.json_key()
+    value = config.json_value()
 
     return {
         key(k): value(v)
@@ -264,12 +241,10 @@ def extract_json(path) -> dict[str, Any]:
 
 
 def get_boost_string():
-    field = tk.config.get(CONFIG_INDEX_FIELD, DEFAULT_INDEX_FIELD)
-    try:
-        boost = float(tk.config.get(CONFIG_BOOST, DEFAULT_BOOST))
-    except (TypeError, ValueError) as e:
-        log.error("Cannot parse %s: %s", CONFIG_BOOST, e)
-        boost = DEFAULT_BOOST
+    field = config.index_field()
+
+    boost = config.boost()
+
     if not field or boost == 1:
         return
     if boost.is_integer():

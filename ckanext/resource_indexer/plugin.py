@@ -12,10 +12,9 @@ from ckan.lib.search.query import QUERY_FIELDS
 import ckanext.resource_indexer.interface as interface
 import ckanext.resource_indexer.utils as utils
 
-log = logging.getLogger(__name__)
+from . import config
 
-CONFIG_JSON_AS_TEXT = "ckanext.resoruce_indexer.json.add_as_plain"
-DEFAULT_JSON_AS_TEXT = False
+log = logging.getLogger(__name__)
 
 
 class ResourceIndexerPlugin(p.SingletonPlugin):
@@ -27,7 +26,6 @@ class ResourceIndexerPlugin(p.SingletonPlugin):
         resources = json.loads(pkg_dict["validated_data_dict"]).get(
             "resources", []
         )
-
         for res in utils.select_indexable_resources(resources):
             utils.index_resource(res, pkg_dict)
         return pkg_dict
@@ -91,5 +89,5 @@ class JsonResourceIndexerPlugin(p.SingletonPlugin):
     def merge_chunks_into_index(self, pkg_dict: dict[str, Any], chunks: dict[str, Any]):
         pkg_dict.update(chunks)
 
-        if tk.config.get(CONFIG_JSON_AS_TEXT, DEFAULT_JSON_AS_TEXT):
+        if config.index_json_as_text():
             utils.merge_text_chunks(pkg_dict, [f" {k}: {v}" for k, v in chunks.items()])

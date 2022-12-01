@@ -7,7 +7,7 @@ from unittest import mock
 
 import pysolr
 import ckan.tests.helpers as helpers
-import ckanext.resource_indexer.utils as utils
+from ckanext.resource_indexer import config
 
 @pytest.mark.usefixtures("with_plugins", "clean_db", "clean_index")
 @pytest.mark.ckan_config(
@@ -96,7 +96,7 @@ class TestBoost:
         helpers.call_action("package_search", q="hello")
         assert fn.call_args.kwargs["qf"] == QUERY_FIELDS
 
-    @pytest.mark.ckan_config(utils.CONFIG_INDEX_FIELD, "custom_field")
+    @pytest.mark.ckan_config(config.CONFIG_INDEX_FIELD, "custom_field")
     def test_custom_index_field_without_explicit_boost_ignored(
         self, monkeypatch
     ):
@@ -105,8 +105,8 @@ class TestBoost:
         helpers.call_action("package_search", q="hello")
         assert fn.call_args.kwargs["qf"] == QUERY_FIELDS
 
-    @pytest.mark.ckan_config(utils.CONFIG_INDEX_FIELD, "custom_field")
-    @pytest.mark.ckan_config(utils.CONFIG_BOOST, 2)
+    @pytest.mark.ckan_config(config.CONFIG_INDEX_FIELD, "custom_field")
+    @pytest.mark.ckan_config(config.CONFIG_BOOST, 2)
     def test_boosted_field(self, monkeypatch):
         fn = mock.MagicMock()
         monkeypatch.setattr(pysolr.Solr, "search", fn)
