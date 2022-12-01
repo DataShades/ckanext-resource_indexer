@@ -86,10 +86,19 @@ indexer is searched. If no indexers were found(or resource format is missing
 from the `ckanext.resource_indexer.indexable_formats` config option), the
 resource is skipped.
 
-:information_source: Indexation can be temporarily disabled. Set environment
-variable `CKANEXT_RESOURCE_INDEXER_BYPASS`(any non-empty value), and the plugin
-won't interfer into standard dataset indexation process. This trick can be used
-for fast index re-builds.
+:information_source: Indexation can be temporarily disabled using one of the
+following approaches:
+* Set environment variable `CKANEXT_RESOURCE_INDEXER_BYPASS`(any non-empty
+value), and the plugin won't interfer into standard dataset indexation
+process.
+* Use `ckanext.resource_indexer.utils.disabled_indexation` context manager:
+  ```python
+  with disabled_indexation():
+      here_indexation_does_not_happen()
+
+  here_indexation_happens()
+  ```
+
 
 Every indexer has weight(priority). Indexer with the highest weight will be
 used to index the resource.

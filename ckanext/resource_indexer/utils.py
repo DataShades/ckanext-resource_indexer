@@ -6,6 +6,8 @@ import tempfile
 import enum
 import json
 from typing import Any, Iterable, Optional
+from contextvars import ContextVar
+from contextlib import contextmanager
 
 import requests
 
@@ -16,6 +18,8 @@ from . import config
 
 
 log = logging.getLogger(__name__)
+
+bypass_flag = ContextVar("bypass_flag", default=False)
 
 
 class Weight(enum.IntEnum):
@@ -279,4 +283,16 @@ def bypass_indexation() -> bool:
 
     May be used for fast index re-builds.
     """
-    return bool(os.getenv("CKANEXT_RESOURCE_INDEXER_BYPASS"))
+    return bool(os.getenv("CKANEXT_RESOURCE_INDEXER_BYPASS")) or bypass_flag.get()
+
+
+
+@contextmanager
+def disabled_indexation():
+    """With-context that disables indexation of the resource.
+    """
+    token = bypass_flag.set(True)
+    try:
+        yield
+    finally:
+        bypass_flag.reset(token)
