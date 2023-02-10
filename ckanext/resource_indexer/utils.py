@@ -230,6 +230,7 @@ def merge_text_chunks(pkg_dict, chunks):
 
 def extract_pdf(path) -> Iterable[str]:
     import pdftotext
+    processor = config.pdf_processor()
 
     try:
         with open(path, "rb") as file:
@@ -242,7 +243,8 @@ def extract_pdf(path) -> Iterable[str]:
         pdf_content = []
     for page in pdf_content:
         # normalize null-terminated strings that appear in old versions of poppler
-        yield page.rstrip("\x00")
+        content = page.rstrip("\x00")
+        yield processor(content)
 
 
 def extract_plain(path) -> Iterable[str]:

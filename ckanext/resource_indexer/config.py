@@ -33,6 +33,9 @@ DEFAULT_JSON_KEY = "builtins:str"
 CONFIG_JSON_VALUE = "ckanext.resoruce_indexer.json.value_processor"
 DEFAULT_JSON_VALUE = "builtins:str"
 
+CONFIG_PFD_PROCESSOR = "ckanext.resoruce_indexer.pdf.page_processor"
+DEFAULT_PFD_PROCESSOR = "builtins:str"
+
 
 def index_json_as_text() -> bool:
     return tk.asbool(tk.config.get(CONFIG_JSON_AS_TEXT, DEFAULT_JSON_AS_TEXT))
@@ -64,6 +67,10 @@ def json_key() -> Callable[[Any], str]:
 
 def json_value() -> Callable[[Any], str]:
     return import_string(tk.config.get(CONFIG_JSON_VALUE, DEFAULT_JSON_VALUE))
+
+
+def pdf_processor() -> Callable[[str], str]:
+    return import_string(tk.config.get(CONFIG_PFD_PROCESSOR, DEFAULT_PFD_PROCESSOR))
 
 
 def boost() -> float:

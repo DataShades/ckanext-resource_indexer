@@ -61,6 +61,11 @@ ckanext.resoruce_indexer.search_boost = 0.5
 
 ##### Indexer specific option ###############
 
+### PDF
+# Change a text from a single page before it added to the index
+# (optional, default: builtins:str)
+ckanext.resoruce_indexer.pdf.page_processor = custom.module:value_processor
+
 ### JSON
 # Index JSON files as plain text(in addition to indexing as mapping)
 # (optional, default: false)
@@ -214,6 +219,10 @@ In order to enable it:
     ```sh
     brew install pkg-config poppler python
     ```
+
+If PDF content requires preprocessing, specify function that converts text from
+a every separate as a `ckanext.resoruce_indexer.pdf.page_processor`. It uses
+standard import-string format: `module.import.path:function`
 
 #### JSON indexer
 
