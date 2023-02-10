@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.3.2](https://github.com/DataShades/ckanext-resource_indexer/compare/v0.3.1...v0.3.2) (2023-02-10)
+
+
+### Features
+
+* add PDF page processor ([4c4dd55](https://github.com/DataShades/ckanext-resource_indexer/commit/4c4dd555d9a146c128829aab349e1929ecbe7421))
+
 ### [0.3.1](https://github.com/DataShades/ckanext-resource_indexer/compare/v0.3.0...v0.3.1) (2022-12-01)
 
 
