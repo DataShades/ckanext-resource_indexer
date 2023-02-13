@@ -20,6 +20,7 @@ from . import config
 log = logging.getLogger(__name__)
 
 bypass_flag = ContextVar("bypass_flag", default=False)
+debug_last_content = ContextVar("debug_last_content", default="")
 
 
 class Weight(enum.IntEnum):
@@ -208,31 +209,30 @@ def _get_remote_res_max_size():
     return config.max_remote_size() * 1024**2
 
 
-def merge_text_chunks(pkg_dict, chunks):
+def merge_text_chunks(pkg_dict: dict[str, Any], chunks: Iterable[str]) -> Optional[str]:
     index_field = config.index_field()
-    if index_field:
-        str_index = "".join(map(str, chunks))
-        if str_index:
-            current = pkg_dict.setdefault(index_field, "")
+    if not index_field:
+        index_field = "text"
+        pkg_dict.setdefault(index_field, [])
 
-            if isinstance(current, list):
-                pkg_dict.append(str_index)
-
-            else:
-                pkg_dict[index_field] = " ".join(current, str_index)
-
+    str_index = "".join(chunks)
+    if not str_index:
         return
 
-    text_index = pkg_dict.setdefault("text", [])
-    if isinstance(text_index, str):
-        text_index = [text_index]
-        pkg_dict["text"] = text_index
+    current = pkg_dict.setdefault(index_field, "")
 
-    for chunk in chunks:
-        text_index.append(chunk)
+    if isinstance(current, list):
+        pkg_dict[index_field].append(str_index)
+        debug_last_content.set(" ".join(pkg_dict[index_field]))
+
+    else:
+        pkg_dict[index_field] = " ".join([str(current), str_index])
+        debug_last_content.set(pkg_dict[index_field])
+
+    return str_index
 
 
-def extract_pdf(path) -> Iterable[str]:
+def extract_pdf(path: str) -> Iterable[str]:
     import pdftotext
     processor = config.pdf_processor()
 

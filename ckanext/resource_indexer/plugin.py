@@ -103,6 +103,6 @@ class JsonResourceIndexerPlugin(p.SingletonPlugin):
         pkg_dict.update(chunks)
 
         if config.index_json_as_text():
-            utils.merge_text_chunks(
+            return utils.merge_text_chunks(
                 pkg_dict, [f" {k}: {v}" for k, v in chunks.items()]
             )
