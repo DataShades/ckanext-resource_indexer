@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.4.0](https://github.com/DataShades/ckanext-resource_indexer/compare/v0.3.2...v0.4.0) (2023-02-13)
+
+
+### ⚠ BREAKING CHANGES
+
+* restrict plain formats via ckanext.resource_indexer.plain.indexable_formats
+
+### Features
+
+* CLI with rebuild command ([ea0a519](https://github.com/DataShades/ckanext-resource_indexer/commit/ea0a5198875c12b3dd4e47d9ff08e44f26a068de))
+* restrict plain formats via ckanext.resource_indexer.plain.indexable_formats ([e6dc626](https://github.com/DataShades/ckanext-resource_indexer/commit/e6dc62630ead46df7ffc91b0ac428c82d895384e))
+
 ### [0.3.2](https://github.com/DataShades/ckanext-resource_indexer/compare/v0.3.1...v0.3.2) (2023-02-10)
 
 
