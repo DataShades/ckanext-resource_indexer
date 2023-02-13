@@ -1,4 +1,5 @@
 from __future__ import annotations
+from collections.abc import Collection, Container
 
 import logging
 from typing import Any, Callable
@@ -24,6 +25,9 @@ DEFAULT_ALLOW_REMOTE = False
 CONFIG_INDEXABLE_FORMATS = "ckanext.resource_indexer.indexable_formats"
 DEFAULT_INDEXABLE_FORMATS = None
 
+CONFIG_PLAIN_FORMATS = "ckanext.resource_indexer.plain.indexable_formats"
+DEFAULT_PLAIN_FORMATS = ["txt", "csv", "json", "yaml", "yml", "html"]
+
 CONFIG_BOOST = "ckanext.resoruce_indexer.search_boost"
 DEFAULT_BOOST = 1.0
 
@@ -41,9 +45,18 @@ def index_json_as_text() -> bool:
     return tk.asbool(tk.config.get(CONFIG_JSON_AS_TEXT, DEFAULT_JSON_AS_TEXT))
 
 
-def indexable_formats() -> list[str]:
+def indexable_formats() -> Collection[str]:
+    return list({
+        f.lower()
+        for f in tk.aslist(
+                tk.config.get(CONFIG_INDEXABLE_FORMATS, DEFAULT_INDEXABLE_FORMATS)
+        )
+    })
+
+
+def plain_formats() -> Container[str]:
     return tk.aslist(
-        tk.config.get(CONFIG_INDEXABLE_FORMATS, DEFAULT_INDEXABLE_FORMATS)
+        tk.config.get(CONFIG_PLAIN_FORMATS, DEFAULT_PLAIN_FORMATS)
     )
 
 

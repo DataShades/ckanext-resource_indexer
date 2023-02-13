@@ -213,10 +213,14 @@ def merge_text_chunks(pkg_dict, chunks):
     if index_field:
         str_index = "".join(map(str, chunks))
         if str_index:
-            pkg_dict.setdefault(index_field, "")
-            pkg_dict[index_field] += (
-                (pkg_dict.get(index_field) or "") + " " + str_index
-            )
+            current = pkg_dict.setdefault(index_field, "")
+
+            if isinstance(current, list):
+                pkg_dict.append(str_index)
+
+            else:
+                pkg_dict[index_field] = " ".join(current, str_index)
+
         return
 
     text_index = pkg_dict.setdefault("text", [])
@@ -244,7 +248,9 @@ def extract_pdf(path) -> Iterable[str]:
     for page in pdf_content:
         # normalize null-terminated strings that appear in old versions of poppler
         content = page.rstrip("\x00")
-        yield processor(content)
+        processed = processor(content)
+
+        yield processed
 
 
 def extract_plain(path) -> Iterable[str]:

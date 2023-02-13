@@ -61,6 +61,11 @@ ckanext.resoruce_indexer.search_boost = 0.5
 
 ##### Indexer specific option ###############
 
+### Plain
+# Space-separated list of formats that can be indexed as a plain text
+# (optional, default: txt csv json yaml yml html)
+ckanext.resource_indexer.plain.indexable_formats = xml txt csv
+
 ### PDF
 # Change a text from a single page before it added to the index
 # (optional, default: builtins:str)
@@ -183,7 +188,7 @@ class CustomIndexerPlugin(plugins.SingletonPlugin):
 ### Built-in indexers
 
 #### Plain indexer
-Index all the formats specified by `ckanext.resource_indexer.indexable_formats` config option, unless other handler with a non-fallback weight(>10) found.
+Index formats specified by `ckanext.resource_indexer.indexable_formats` if they fall into the value of `ckanext.resource_indexer.plain.indexable_formats` config option, unless other handler with a non-fallback weight(>10) found.
 
 Resources are indexed as-is. File is read and sent to the index without any additional changes.
 

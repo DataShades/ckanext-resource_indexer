@@ -12,13 +12,14 @@ from ckan.lib.search.query import QUERY_FIELDS
 import ckanext.resource_indexer.interface as interface
 import ckanext.resource_indexer.utils as utils
 
-from . import config
+from . import config, cli
 
 log = logging.getLogger(__name__)
 
 
 class ResourceIndexerPlugin(p.SingletonPlugin):
     p.implements(p.IPackageController, inherit=True)
+    p.implements(p.IClick)
 
     # IPackageController
 
@@ -43,6 +44,9 @@ class ResourceIndexerPlugin(p.SingletonPlugin):
     before_index = before_dataset_index
     before_search = before_dataset_search
 
+    # IClick
+    def get_commands(self):
+        return cli.get_commands()
 
 class PdfResourceIndexerPlugin(p.SingletonPlugin):
     p.implements(interface.IResourceIndexer)
@@ -68,7 +72,11 @@ class PlainResourceIndexerPlugin(p.SingletonPlugin):
     # IResourceIndexer
 
     def get_resource_indexer_weight(self, res):
-        return utils.Weight.fallback
+        fmt = res["format"].lower()
+        if fmt in config.plain_formats():
+            return utils.Weight.fallback
+
+        return utils.Weight.skip
 
     def extract_indexable_chunks(self, path):
         return utils.extract_plain(path)
