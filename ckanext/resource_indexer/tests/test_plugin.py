@@ -11,6 +11,7 @@ from ckan.lib.search import rebuild
 
 from ckanext.resource_indexer import config
 
+
 def dumb_translator(string: str):
     return string.translate(str.maketrans({"P": "X", "D": "Y", "F": "Z"}))
 
@@ -49,16 +50,9 @@ class TestPlainIndexer(object):
         result = helpers.call_action("package_search", q="hello world")
         assert result["count"] == 0
 
-    @pytest.mark.ckan_config(
-        "ckanext.resource_indexer.indexable_formats", "txt json"
-    )
-    @pytest.mark.ckan_config(
-        config.CONFIG_PLAIN_FORMATS, ["json"]
-    )
-
-    def test_plain_formats_can_be_changed(
-        self, create_with_upload, package
-    ):
+    @pytest.mark.ckan_config(config.CONFIG_INDEXABLE_FORMATS, "txt json")
+    @pytest.mark.ckan_config(config.CONFIG_PLAIN_FORMATS, ["json"])
+    def test_plain_formats_can_be_changed(self, create_with_upload, package):
         create_with_upload(
             "hello world", "file.txt", format="txt", package_id=package["id"]
         )
@@ -74,10 +68,7 @@ class TestPlainIndexer(object):
         result = helpers.call_action("package_search", q="not here yet")
         assert result["count"] == 1
 
-
-    @pytest.mark.ckan_config(
-        "ckanext.resource_indexer.indexable_formats", "txt json"
-    )
+    @pytest.mark.ckan_config(config.CONFIG_INDEXABLE_FORMATS, "txt json")
     def test_resource_is_indexed_when_format_enabled(
         self, create_with_upload, package
     ):
@@ -122,9 +113,7 @@ class TestPlainIndexer(object):
     "ckan.plugins", "resource_indexer pdf_resource_indexer"
 )
 class TestPdfIndexer(object):
-    @pytest.mark.ckan_config(
-        "ckanext.resource_indexer.indexable_formats", "pdf"
-    )
+    @pytest.mark.ckan_config(config.CONFIG_INDEXABLE_FORMATS, "pdf")
     def test_pdf_is_indexed(self, create_with_upload, package):
         path = os.path.join(os.path.dirname(__file__), "data/example.pdf")
         with open(path, "rb") as pdf:
@@ -135,11 +124,10 @@ class TestPdfIndexer(object):
         result = helpers.call_action("package_search", q="Dummy PDF")
         assert result["count"] == 1
 
+    @pytest.mark.ckan_config(config.CONFIG_INDEXABLE_FORMATS, "pdf")
     @pytest.mark.ckan_config(
-        "ckanext.resource_indexer.indexable_formats", "pdf"
-    )
-    @pytest.mark.ckan_config(
-        config.CONFIG_PFD_PROCESSOR, "ckanext.resource_indexer.tests.test_plugin:dumb_translator"
+        config.CONFIG_PFD_PROCESSOR,
+        "ckanext.resource_indexer.tests.test_plugin:dumb_translator",
     )
     def test_page_processor_applied(self, create_with_upload, package):
         path = os.path.join(os.path.dirname(__file__), "data/example.pdf")
@@ -180,3 +168,37 @@ class TestBoost:
 
         helpers.call_action("package_search", q="hello", qf="name^1")
         assert fn.call_args.kwargs["qf"] == "name^1 custom_field^2"
+
+
+@pytest.mark.usefixtures("with_plugins", "clean_db", "clean_index")
+@pytest.mark.ckan_config(
+    "ckan.plugins", "resource_indexer json_resource_indexer"
+)
+@pytest.mark.ckan_config(config.CONFIG_INDEXABLE_FORMATS, "json")
+class TestJsonIndexer(object):
+    def test_field_overriden(self, create_with_upload, package):
+        create_with_upload(
+            '{"name": "override"}',
+            "file.json",
+            format="json",
+            package_id=package["id"],
+        )
+
+        result = helpers.call_action(
+            "package_search", q=f"name:{package['name']}"
+        )
+        assert result["count"] == 0
+
+        result = helpers.call_action("package_search", q="name:override")
+        assert result["count"] == 1
+
+    def test_invalid_json(self, create_with_upload, package):
+        create_with_upload(
+            "hello world", "file.json", format="json", package_id=package["id"]
+        )
+
+        result = helpers.call_action("package_search", q=package["name"])
+        assert result["count"] == 1
+
+        result = helpers.call_action("package_search", q="hello world")
+        assert result["count"] == 0

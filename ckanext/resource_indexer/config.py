@@ -46,12 +46,16 @@ def index_json_as_text() -> bool:
 
 
 def indexable_formats() -> Collection[str]:
-    return list({
-        f.lower()
-        for f in tk.aslist(
-                tk.config.get(CONFIG_INDEXABLE_FORMATS, DEFAULT_INDEXABLE_FORMATS)
-        )
-    })
+    return list(
+        {
+            f.lower()
+            for f in tk.aslist(
+                tk.config.get(
+                    CONFIG_INDEXABLE_FORMATS, DEFAULT_INDEXABLE_FORMATS
+                )
+            )
+        }
+    )
 
 
 def plain_formats() -> Container[str]:
@@ -83,7 +87,9 @@ def json_value() -> Callable[[Any], str]:
 
 
 def pdf_processor() -> Callable[[str], str]:
-    return import_string(tk.config.get(CONFIG_PFD_PROCESSOR, DEFAULT_PFD_PROCESSOR))
+    return import_string(
+        tk.config.get(CONFIG_PFD_PROCESSOR, DEFAULT_PFD_PROCESSOR)
+    )
 
 
 def boost() -> float:

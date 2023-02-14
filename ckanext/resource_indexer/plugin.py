@@ -48,6 +48,7 @@ class ResourceIndexerPlugin(p.SingletonPlugin):
     def get_commands(self):
         return cli.get_commands()
 
+
 class PdfResourceIndexerPlugin(p.SingletonPlugin):
     p.implements(interface.IResourceIndexer)
 

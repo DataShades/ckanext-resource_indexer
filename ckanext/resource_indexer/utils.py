@@ -48,9 +48,7 @@ def select_indexable_resources(
 
 
 def index_resource(res: dict[str, Any], pkg_dict: dict[str, Any]):
-    """Extract the data from resource and merge it into the package.
-
-    """
+    """Extract the data from resource and merge it into the package."""
     removable_path = _get_removable_filepath_for_resource(res)
     if not removable_path:
         return
@@ -63,8 +61,16 @@ def index_resource(res: dict[str, Any], pkg_dict: dict[str, Any]):
             if handler:
                 chunks = handler.extract_indexable_chunks(path)
                 handler.merge_chunks_into_index(pkg_dict, chunks)
-        except Exception as e:
-            log.error("An error occured during indexing process: {}".format(e))
+        except Exception:
+            log.exception(
+                (
+                    "File %s(remote files are not persisted) from resource %s"
+                    " of the package %s cannot be indexed. Error:"
+                ),
+                path,
+                res["id"],
+                pkg_dict["id"],
+            )
 
 
 def _get_handler(res):
@@ -90,8 +96,8 @@ def _get_handler(res):
 
 
 class StaticPath:
-    """With-context for a filepath that should not be modified.
-    """
+    """With-context for a filepath that should not be modified."""
+
     def __init__(self, path: Optional[str]):
         self.path = path
 
@@ -116,7 +122,9 @@ class RemovablePath(StaticPath):
             os.remove(self.path)
 
 
-def _get_removable_filepath_for_resource(res: dict[str, Any]) -> Optional[StaticPath]:
+def _get_removable_filepath_for_resource(
+    res: dict[str, Any]
+) -> Optional[StaticPath]:
     """Returns a context with a path to the file owned by the resource.
 
     The real path can be extracted from the return value using with-statement:
@@ -209,7 +217,9 @@ def _get_remote_res_max_size():
     return config.max_remote_size() * 1024**2
 
 
-def merge_text_chunks(pkg_dict: dict[str, Any], chunks: Iterable[str]) -> Optional[str]:
+def merge_text_chunks(
+    pkg_dict: dict[str, Any], chunks: Iterable[str]
+) -> Optional[str]:
     index_field = config.index_field()
     if not index_field:
         index_field = "text"
@@ -234,6 +244,7 @@ def merge_text_chunks(pkg_dict: dict[str, Any], chunks: Iterable[str]) -> Option
 
 def extract_pdf(path: str) -> Iterable[str]:
     import pdftotext
+
     processor = config.pdf_processor()
 
     try:
@@ -261,11 +272,7 @@ def extract_plain(path) -> Iterable[str]:
 
 def extract_json(path) -> dict[str, Any]:
     with open(path) as f:
-        try:
-            data = json.load(f)
-        except ValueError:
-            log.exception("Cannot index JSON resource at %s", path)
-            return {}
+        data = json.load(f)
 
     key = config.json_key()
     value = config.json_value()
@@ -291,14 +298,14 @@ def bypass_indexation() -> bool:
 
     May be used for fast index re-builds.
     """
-    return bool(os.getenv("CKANEXT_RESOURCE_INDEXER_BYPASS")) or bypass_flag.get()
-
+    return (
+        bool(os.getenv("CKANEXT_RESOURCE_INDEXER_BYPASS")) or bypass_flag.get()
+    )
 
 
 @contextmanager
 def disabled_indexation():
-    """With-context that disables indexation of the resource.
-    """
+    """With-context that disables indexation of the resource."""
     token = bypass_flag.set(True)
     try:
         yield
