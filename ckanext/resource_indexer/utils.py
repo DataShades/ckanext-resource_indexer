@@ -17,8 +17,6 @@ from ckan.lib.uploader import get_resource_uploader
 from . import config, exc
 
 
-
-
 log = logging.getLogger(__name__)
 
 bypass_flag = ContextVar("bypass_flag", default=False)
@@ -66,8 +64,9 @@ def index_resource(res: dict[str, Any], pkg_dict: dict[str, Any]):
         except Exception:
             log.exception(
                 (
-                    "File %s(remote files in the temporary filder are not persisted) "
-                    "from resource %s of the package %s cannot be indexed. Error:"
+                    "File %s(remote files in the temporary filder are not"
+                    " persisted) from resource %s of the package %s cannot be"
+                    " indexed. Error:"
                 ),
                 path,
                 res["id"],
@@ -176,7 +175,12 @@ def _download_remote_file(res_id: str, url: str) -> Optional[str]:
     Returns path to this file
     """
     try:
-        resp = requests.get(url, timeout=config.remote_timeout(), allow_redirects=True, stream=True)
+        resp = requests.get(
+            url,
+            timeout=config.remote_timeout(),
+            allow_redirects=True,
+            stream=True,
+        )
     except Exception as e:
         log.warn(
             "Unable to make GET request for resource {} with url <{}>: {}"
