@@ -15,7 +15,24 @@ class FileError(ResourceIndexerError):
         return f"File {self.filepath} cannot be processed"
 
 
-class ContentError(FileError):
+class UnexpectedEncodingError(FileError):
+    def __init__(self, filepath: str, e: UnicodeDecodeError):
+        super().__init__(filepath)
+
+        start = max(0, e.start - 10)
+        end = e.end + 10
+
+        self.original = e
+        self.problem = e.object[e.start:e.end]
+        self.context = e.object[start:end]
+
+    def __str__(self):
+        return (
+            f"File {self.filepath} has an unexpected character at position {self.original.start}: {self.problem}"
+            f" Context: {self.context}"
+        )
+
+class UnexpectedContentError(FileError):
     def __init__(self, filepath: str):
         super().__init__(filepath)
 

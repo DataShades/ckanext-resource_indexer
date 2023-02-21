@@ -256,8 +256,10 @@ def extract_pdf(path: str) -> Iterable[str]:
     with open(path, "rb") as source:
         try:
             pdf_content = pdftotext.PDF(source)
+        except UnicodeDecodeError as e:
+            raise exc.UnexpectedEncodingError(path, e)
         except Exception:
-            raise exc.ContentError(path)
+            raise exc.UnexpectedContentError(path)
 
     for page in pdf_content:
         # normalize null-terminated strings that appear in old versions of poppler
