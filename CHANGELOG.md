@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.4.1](https://github.com/DataShades/ckanext-resource_indexer/compare/v0.4.0...v0.4.1) (2023-02-21)
+
+
+### Bug Fixes
+
+* configurabe timeout for remote requests ([7db13ce](https://github.com/DataShades/ckanext-resource_indexer/commit/7db13ce8b1ccbcf63b1f49338b5a7aa73c736bb4))
+* more details about decoding errors from pdf ([2186622](https://github.com/DataShades/ckanext-resource_indexer/commit/2186622f2fecb8f72894e9e4f0110f8207cd7e0a))
+* report package/resource ID when indexation fails ([54b6da4](https://github.com/DataShades/ckanext-resource_indexer/commit/54b6da4d4dcf72ce80e4af742795000182e8693b))
+* show more details when pdf-parsing failed ([a91bdf8](https://github.com/DataShades/ckanext-resource_indexer/commit/a91bdf862a51c1a27a517094f2639f3a4716bb0e))
+
 ## [0.4.0](https://github.com/DataShades/ckanext-resource_indexer/compare/v0.3.2...v0.4.0) (2023-02-13)
 
 
