@@ -176,7 +176,7 @@ def _download_remote_file(res_id: str, url: str) -> Optional[str]:
     Returns path to this file
     """
     try:
-        resp = requests.get(url, timeout=2, allow_redirects=True, stream=True)
+        resp = requests.get(url, timeout=config.remote_timeout(), allow_redirects=True, stream=True)
     except Exception as e:
         log.warn(
             "Unable to make GET request for resource {} with url <{}>: {}"

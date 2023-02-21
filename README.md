@@ -38,6 +38,10 @@ indexers](#indexers). The following formats are supported out of the box:
 # (optional, default: false).
 ckanext.resource_indexer.allow_remote = 1
 
+# Tiemeout for the attempt to download remote file
+# (optional, default: 2).
+ckanext.resource_indexer.remote_timeout = 10
+
 # The size treshold(MB) for remote resources
 # (optional, default: 4).
 ckanext.resource_indexer.max_remote_size = 4

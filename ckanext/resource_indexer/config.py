@@ -22,6 +22,9 @@ DEFAULT_MAX_REMOTE_SIZE = 4
 CONFIG_ALLOW_REMOTE = "ckanext.resource_indexer.allow_remote"
 DEFAULT_ALLOW_REMOTE = False
 
+CONFIG_REMOTE_TIMEOUT = "ckanext.resource_indexer.remote_timeout"
+DEFAULT_REMOTE_TIMEOUT = 2
+
 CONFIG_INDEXABLE_FORMATS = "ckanext.resource_indexer.indexable_formats"
 DEFAULT_INDEXABLE_FORMATS = None
 
@@ -71,6 +74,12 @@ def allow_remote() -> bool:
 def max_remote_size() -> int:
     return tk.asint(
         tk.config.get(CONFIG_MAX_REMOTE_SIZE, DEFAULT_MAX_REMOTE_SIZE)
+    )
+
+
+def remote_timeout() -> int:
+    return tk.asint(
+        tk.config.get(CONFIG_REMOTE_TIMEOUT, DEFAULT_REMOTE_TIMEOUT)
     )
 
 
