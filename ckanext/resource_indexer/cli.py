@@ -83,6 +83,7 @@ def rebuild(
                     dict(context), {"id": id_}
                 )
                 try:
+                    log.info("Index package %s", id_)
                     package_index.insert_dict(pkg_dict)
                 except common.SearchIndexError as e:
                     log.error(
@@ -110,7 +111,6 @@ def _suggest_solution(
         # let's add a bit of context
         start = max(0, start - 10)
         end = end + 10
-
         log.info(
             (
                 "The following fragment came from one of the resources"

@@ -14,7 +14,9 @@ import requests
 import ckan.plugins as p
 from ckan.lib.uploader import get_resource_uploader
 
-from . import config
+from . import config, exc
+
+
 
 
 log = logging.getLogger(__name__)
@@ -64,8 +66,8 @@ def index_resource(res: dict[str, Any], pkg_dict: dict[str, Any]):
         except Exception:
             log.exception(
                 (
-                    "File %s(remote files are not persisted) from resource %s"
-                    " of the package %s cannot be indexed. Error:"
+                    "File %s(remote files in the temporary filder are not persisted) "
+                    "from resource %s of the package %s cannot be indexed. Error:"
                 ),
                 path,
                 res["id"],
@@ -247,15 +249,12 @@ def extract_pdf(path: str) -> Iterable[str]:
 
     processor = config.pdf_processor()
 
-    try:
-        with open(path, "rb") as file:
-            pdf_content = pdftotext.PDF(file)
-    except Exception as e:
-        log.warn(
-            "Problem during extracting content from <{}>".format(path),
-            exc_info=e,
-        )
-        pdf_content = []
+    with open(path, "rb") as source:
+        try:
+            pdf_content = pdftotext.PDF(source)
+        except Exception:
+            raise exc.ContentError(path)
+
     for page in pdf_content:
         # normalize null-terminated strings that appear in old versions of poppler
         content = page.rstrip("\x00")
