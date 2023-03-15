@@ -208,6 +208,10 @@ In order to enable it:
   ```sh
   pip install 'ckanext-resource-indexer[pdf]'
   ```
+  or, if you've already installed the extension itself, just install `pdftotext`:
+  ```sh
+  pip install pdftotext
+  ```
 * add `pdf_resource_indexer` to the list of enabled plugins and
 * install system packages for PDF processing. This will be different depending on your system. Examples:
   * CentOS
