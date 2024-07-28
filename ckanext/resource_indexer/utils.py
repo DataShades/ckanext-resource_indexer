@@ -146,7 +146,7 @@ def _get_removable_filepath_for_resource(
     res_id = res["id"]
     res_url = res["url"]
 
-    if res["url_type"] == "upload":
+    if res.get("url_type") == "upload":
         uploader = get_resource_uploader(res)
 
         # TODO temporary workaround for ckanext-cloudstorage support
