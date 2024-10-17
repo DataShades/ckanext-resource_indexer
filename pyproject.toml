@@ -1,6 +1,50 @@
-[tool.black]
-line-length = 79
-preview = true
+[build-system]
+requires = [ "setuptools",]
+build-backend = "setuptools.build_meta"
 
-[tool.ipdb]
+[project]
+name = "ckanext-resource_indexer"
+version = "0.4.2.post1"
+description = ""
+classifiers = [ "Development Status :: 4 - Beta", "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)", "Programming Language :: Python :: 3.7", "Programming Language :: Python :: 3.8", "Programming Language :: Python :: 3.9", "Programming Language :: Python :: 3.10",]
+keywords = [ "CKAN",]
+dependencies = [ "ckantoolkit", "six",]
+authors = [
+    {name = "DataShades", email = "datashades@linkdigital.com.au"},
+    {name = "Sergey Motornyuk", email = "sergey.motornyuk@linkdigital.com.au"},
+]
+maintainers = [
+    {name = "DataShades", email = "datashades@linkdigital.com.au"},
+]
 
+[project.readme]
+file = "README.md"
+content-type = "text/markdown"
+
+[project.license]
+text = "AGPL"
+
+[project.urls]
+Homepage = "https://github.com/DataShades/ckanext-resource_indexer"
+
+[project.optional-dependencies]
+pdf = [ "pdftotext",]
+all = [ "pdftotext",]
+test = [ "pytest-ckan", "pytest-factoryboy",]
+dev = [ "pdftotext", "pytest-ckan", "pytest-factoryboy",]
+
+[project.entry-points."ckan.plugins"]
+resource_indexer = "ckanext.resource_indexer.plugin:ResourceIndexerPlugin"
+pdf_resource_indexer = "ckanext.resource_indexer.plugin:PdfResourceIndexerPlugin"
+plain_resource_indexer = "ckanext.resource_indexer.plugin:PlainResourceIndexerPlugin"
+json_resource_indexer = "ckanext.resource_indexer.plugin:JsonResourceIndexerPlugin"
+
+[project.entry-points."babel.extractors"]
+ckan = "ckan.lib.extract:extract_ckan"
+
+[tool.pytest.ini_options]
+filterwarnings = [ "ignore::sqlalchemy.exc.SADeprecationWarning", "ignore::sqlalchemy.exc.SAWarning", "ignore::DeprecationWarning",]
+addopts = "--ckan-ini test.ini"
+
+[tool.setuptools.packages]
+find = {}
