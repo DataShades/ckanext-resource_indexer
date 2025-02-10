@@ -270,7 +270,9 @@ def extract_pdf(path: str) -> Iterable[str]:
 
 
 def extract_plain(path) -> Iterable[str]:
-    with open(path) as f:
+    # we're replacing unknown characters with '�' to avoid UnicodeDecodeError
+    # we may want to guess encoding in the future
+    with open(path, errors="replace") as f:
         content = f.read()
     yield content
 
