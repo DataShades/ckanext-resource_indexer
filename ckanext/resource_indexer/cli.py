@@ -1,15 +1,16 @@
 from __future__ import annotations
 
-import re
 import contextlib
 import logging
-from typing import Any, Optional
+import re
+from collections.abc import Collection
+from typing import Any
 
+import ckan.plugins.toolkit as tk
 import click
+from ckan.lib.search import common, index_for
 
 from ckan import model
-import ckan.plugins.toolkit as tk
-from ckan.lib.search import index_for, common
 
 from . import config, utils
 
@@ -36,9 +37,7 @@ def _patched_config(option, value):
         tk.config[option] = old
 
 
-@click.group(
-    short_help="Include the content of resources into the search-index"
-)
+@click.group(short_help="Include the content of resources into the search-index")
 def resource_indexer():
     pass
 
@@ -76,32 +75,26 @@ def rebuild(
         "use_cache": False,
     }
 
-    with _patched_config(config.CONFIG_INDEXABLE_FORMATS, list(formats)):
-        with click.progressbar(ids) as bar:
-            for id_ in bar:
-                pkg_dict = tk.get_action("package_show")(
-                    dict(context), {"id": id_}
+    patched_formats = _patched_config(config.CONFIG_INDEXABLE_FORMATS, list(formats))
+    with patched_formats, click.progressbar(ids) as bar:
+        for id_ in bar:
+            pkg_dict = tk.get_action("package_show")(dict(context), {"id": id_})
+            try:
+                log.info("Index package %s", id_)
+                package_index.insert_dict(pkg_dict)
+            except common.SearchIndexError as e:
+                log.error(
+                    "Cannot index the package %s because of error: %s",
+                    id_,
+                    e,
                 )
-                try:
-                    log.info("Index package %s", id_)
-                    package_index.insert_dict(pkg_dict)
-                except common.SearchIndexError as e:
-                    log.error(
-                        "Cannot index the package %s because of error: %s",
-                        id_,
-                        e,
-                    )
-                    if not _suggest_solution(e, pkg_dict):
-                        log.exception(
-                            "Cannot suggest solution for the problem."
-                        )
+                if not _suggest_solution(e, pkg_dict):
+                    log.exception("Cannot suggest solution for the problem.")
 
-                    continue
+                continue
 
 
-def _suggest_solution(
-    err: common.SearchIndexError, pkg_dict: dict[str, Any]
-) -> bool:
+def _suggest_solution(err: common.SearchIndexError, pkg_dict: dict[str, Any]) -> bool:
     match = RE_WRONG_OFFSET.search(str(err))
     value = utils.debug_last_content.get()
     if value and match:

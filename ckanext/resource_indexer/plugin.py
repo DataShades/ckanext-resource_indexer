@@ -1,18 +1,15 @@
-# -*- coding: utf-8 -*-
 from __future__ import annotations
 
-import logging
 import json
-
+import logging
 from typing import Any
 
 import ckan.plugins as p
 from ckan.lib.search.query import QUERY_FIELDS
 
-import ckanext.resource_indexer.interface as interface
-import ckanext.resource_indexer.utils as utils
+from ckanext.resource_indexer import interface, utils
 
-from . import config, cli
+from . import cli, config
 
 log = logging.getLogger(__name__)
 
@@ -27,9 +24,7 @@ class ResourceIndexerPlugin(p.SingletonPlugin):
         if utils.bypass_indexation():
             return pkg_dict
 
-        resources = json.loads(pkg_dict["validated_data_dict"]).get(
-            "resources", []
-        )
+        resources = json.loads(pkg_dict["validated_data_dict"]).get("resources", [])
         for res in utils.select_indexable_resources(resources):
             utils.index_resource(res, pkg_dict)
         return pkg_dict
@@ -98,9 +93,7 @@ class JsonResourceIndexerPlugin(p.SingletonPlugin):
     def extract_indexable_chunks(self, path: str) -> dict[str, Any]:
         return utils.extract_json(path)
 
-    def merge_chunks_into_index(
-        self, pkg_dict: dict[str, Any], chunks: dict[str, Any]
-    ):
+    def merge_chunks_into_index(self, pkg_dict: dict[str, Any], chunks: dict[str, Any]):
         pkg_dict.update(chunks)
 
         if config.index_json_as_text():

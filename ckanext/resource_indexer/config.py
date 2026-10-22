@@ -1,12 +1,11 @@
 from __future__ import annotations
-from collections.abc import Collection, Container
 
 import logging
-from typing import Any, Callable
-
-from werkzeug.utils import import_string
+from collections.abc import Callable, Collection, Container
+from typing import Any
 
 import ckan.plugins.toolkit as tk
+from werkzeug.utils import import_string
 
 log = logging.getLogger(__name__)
 
@@ -53,18 +52,14 @@ def indexable_formats() -> Collection[str]:
         {
             f.lower()
             for f in tk.aslist(
-                tk.config.get(
-                    CONFIG_INDEXABLE_FORMATS, DEFAULT_INDEXABLE_FORMATS
-                )
+                tk.config.get(CONFIG_INDEXABLE_FORMATS, DEFAULT_INDEXABLE_FORMATS)
             )
         }
     )
 
 
 def plain_formats() -> Container[str]:
-    return tk.aslist(
-        tk.config.get(CONFIG_PLAIN_FORMATS, DEFAULT_PLAIN_FORMATS)
-    )
+    return tk.aslist(tk.config.get(CONFIG_PLAIN_FORMATS, DEFAULT_PLAIN_FORMATS))
 
 
 def allow_remote() -> bool:
@@ -72,15 +67,11 @@ def allow_remote() -> bool:
 
 
 def max_remote_size() -> int:
-    return tk.asint(
-        tk.config.get(CONFIG_MAX_REMOTE_SIZE, DEFAULT_MAX_REMOTE_SIZE)
-    )
+    return tk.asint(tk.config.get(CONFIG_MAX_REMOTE_SIZE, DEFAULT_MAX_REMOTE_SIZE))
 
 
 def remote_timeout() -> int:
-    return tk.asint(
-        tk.config.get(CONFIG_REMOTE_TIMEOUT, DEFAULT_REMOTE_TIMEOUT)
-    )
+    return tk.asint(tk.config.get(CONFIG_REMOTE_TIMEOUT, DEFAULT_REMOTE_TIMEOUT))
 
 
 def index_field() -> str:
@@ -96,9 +87,7 @@ def json_value() -> Callable[[Any], str]:
 
 
 def pdf_processor() -> Callable[[str], str]:
-    return import_string(
-        tk.config.get(CONFIG_PFD_PROCESSOR, DEFAULT_PFD_PROCESSOR)
-    )
+    return import_string(tk.config.get(CONFIG_PFD_PROCESSOR, DEFAULT_PFD_PROCESSOR))
 
 
 def boost() -> float:

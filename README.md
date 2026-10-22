@@ -134,6 +134,11 @@ URL), it can be temporarily downloaded to the local filesystem and removed
 after processing. By default, non-local resources are ignored, but this can be
 changed via `ckanext.resource_indexer.allow_remote` config option.
 
+Since CKAN v2.12, uploaded files are kept in file-keeper storages
+(`ckan.files.storage.*` options), which may be remote, e.g. S3. Files uploaded
+into such storage are always copied into a temporary file before processing,
+regardless of `ckanext.resource_indexer.allow_remote`.
+
 ### Register own indexer
 
 Implement `ckanext.resource_indexer.interface.IResourceIndexer` by providing following methods:

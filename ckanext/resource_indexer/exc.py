@@ -23,7 +23,7 @@ class UnexpectedEncodingError(FileError):
         end = e.end + 10
 
         self.original = e
-        self.problem = e.object[e.start:e.end]
+        self.problem = e.object[e.start : e.end]
         self.context = e.object[start:end]
 
     def __str__(self):
@@ -31,6 +31,7 @@ class UnexpectedEncodingError(FileError):
             f"File {self.filepath} has an unexpected character at position {self.original.start}: {self.problem}"
             f" Context: {self.context}"
         )
+
 
 class UnexpectedContentError(FileError):
     def __init__(self, filepath: str):

@@ -1,8 +1,9 @@
-# -*- coding: utf-8 -*-
 from __future__ import annotations
+
 from typing import Any
 
-import ckan.plugins.interfaces as interfaces
+from ckan.plugins import interfaces
+
 from ckanext.resource_indexer.utils import Weight
 
 
@@ -51,4 +52,3 @@ class IResourceIndexer(interfaces.Interface):
         Returns:
             all meaningfuld pieces of data with no type assumption
         """
-        pass

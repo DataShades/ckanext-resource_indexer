@@ -1,13 +1,13 @@
 """Tests for plugin.py."""
 
 import os
-from ckan.lib.search.query import QUERY_FIELDS
-import pytest
 from unittest import mock
 
 import pysolr
-import ckan.tests.helpers as helpers
+import pytest
 from ckan.lib.search import rebuild
+from ckan.lib.search.query import QUERY_FIELDS
+from ckan.tests import helpers
 
 from ckanext.resource_indexer import config
 
@@ -17,10 +17,8 @@ def dumb_translator(string: str):
 
 
 @pytest.mark.usefixtures("with_plugins", "clean_db", "clean_index")
-@pytest.mark.ckan_config(
-    "ckan.plugins", "resource_indexer plain_resource_indexer"
-)
-class TestPlainIndexer(object):
+@pytest.mark.ckan_config("ckan.plugins", "resource_indexer plain_resource_indexer")
+class TestPlainIndexer:
     @mock.patch("ckanext.resource_indexer.utils.select_indexable_resources")
     def test_bypassing_indexation(self, selector, monkeypatch, package):
         assert selector.call_count == 0
@@ -69,9 +67,7 @@ class TestPlainIndexer(object):
         assert result["count"] == 1
 
     @pytest.mark.ckan_config(config.CONFIG_INDEXABLE_FORMATS, "txt json")
-    def test_resource_is_indexed_when_format_enabled(
-        self, create_with_upload, package
-    ):
+    def test_resource_is_indexed_when_format_enabled(self, create_with_upload, package):
         """Resources with supported formats are indexed.
 
         Multiple resources can be indexed as a part of the single
@@ -109,10 +105,8 @@ class TestPlainIndexer(object):
 
 
 @pytest.mark.usefixtures("with_plugins", "clean_db", "clean_index")
-@pytest.mark.ckan_config(
-    "ckan.plugins", "resource_indexer pdf_resource_indexer"
-)
-class TestPdfIndexer(object):
+@pytest.mark.ckan_config("ckan.plugins", "resource_indexer pdf_resource_indexer")
+class TestPdfIndexer:
     @pytest.mark.ckan_config(config.CONFIG_INDEXABLE_FORMATS, "pdf")
     def test_pdf_is_indexed(self, create_with_upload, package):
         path = os.path.join(os.path.dirname(__file__), "data/example.pdf")
@@ -150,9 +144,7 @@ class TestBoost:
         assert fn.call_args.kwargs["qf"] == QUERY_FIELDS
 
     @pytest.mark.ckan_config(config.CONFIG_INDEX_FIELD, "custom_field")
-    def test_custom_index_field_without_explicit_boost_ignored(
-        self, monkeypatch
-    ):
+    def test_custom_index_field_without_explicit_boost_ignored(self, monkeypatch):
         fn = mock.MagicMock()
         monkeypatch.setattr(pysolr.Solr, "search", fn)
         helpers.call_action("package_search", q="hello")
@@ -171,11 +163,9 @@ class TestBoost:
 
 
 @pytest.mark.usefixtures("with_plugins", "clean_db", "clean_index")
-@pytest.mark.ckan_config(
-    "ckan.plugins", "resource_indexer json_resource_indexer"
-)
+@pytest.mark.ckan_config("ckan.plugins", "resource_indexer json_resource_indexer")
 @pytest.mark.ckan_config(config.CONFIG_INDEXABLE_FORMATS, "json")
-class TestJsonIndexer(object):
+class TestJsonIndexer:
     def test_field_overriden(self, create_with_upload, package):
         create_with_upload(
             '{"name": "override"}',
@@ -184,9 +174,7 @@ class TestJsonIndexer(object):
             package_id=package["id"],
         )
 
-        result = helpers.call_action(
-            "package_search", q=f"name:{package['name']}"
-        )
+        result = helpers.call_action("package_search", q=f"name:{package['name']}")
         assert result["count"] == 0
 
         result = helpers.call_action("package_search", q="name:override")

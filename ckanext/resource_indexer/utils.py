@@ -1,20 +1,25 @@
 from __future__ import annotations
 
+import enum
+import json
 import logging
 import os
 import tempfile
-import enum
-import json
-from typing import Any, Iterable, Optional
-from contextvars import ContextVar
+from collections.abc import Iterable
 from contextlib import contextmanager
-
-import requests
+from contextvars import ContextVar
+from typing import Any
 
 import ckan.plugins as p
+import requests
 from ckan.lib.uploader import get_resource_uploader
 
 from . import config, exc
+
+try:
+    import file_keeper as fk
+except ImportError:  # CKAN < 2.12 has no file-keeper storages
+    fk = None
 
 
 log = logging.getLogger(__name__)
@@ -99,7 +104,7 @@ def _get_handler(res):
 class StaticPath:
     """With-context for a filepath that should not be modified."""
 
-    def __init__(self, path: Optional[str]):
+    def __init__(self, path: str | None):
         self.path = path
 
     def __bool__(self):
@@ -123,9 +128,7 @@ class RemovablePath(StaticPath):
             os.remove(self.path)
 
 
-def _get_removable_filepath_for_resource(
-    res: dict[str, Any]
-) -> Optional[StaticPath]:
+def _get_removable_filepath_for_resource(res: dict[str, Any]) -> StaticPath | None:
     """Returns a context with a path to the file owned by the resource.
 
     The real path can be extracted from the return value using with-statement:
@@ -137,8 +140,9 @@ def _get_removable_filepath_for_resource(
         >>>     do_something_with_path(path)
 
     If resource contains a link to the remote file(or uploaded via cloudstorage
-    plugin), this file can be downloaded, depending on configuration. After
-    processing, file will be automatically removed.
+    plugin), this file can be downloaded, depending on configuration. Files
+    uploaded into file-keeper storage(CKAN v2.12+) are always copied into a
+    temporary file. After processing, file will be automatically removed.
 
 
 
@@ -155,9 +159,16 @@ def _get_removable_filepath_for_resource(
             filepath = _download_remote_file(res_id, url)
             return RemovablePath(filepath)
 
+        storage = getattr(uploader, "storage", None)
+        if fk and isinstance(storage, fk.Storage):
+            filepath = _download_storage_file(
+                res_id, storage, uploader.get_path(res_id)
+            )
+            return RemovablePath(filepath)
+
         path = uploader.get_path(res_id)
         if not os.path.exists(path):
-            log.warn('Resource "%s" refers to unexisting path "%s"', res, path)
+            log.warning('Resource "%s" refers to unexisting path "%s"', res, path)
             return
 
         return StaticPath(path)
@@ -169,7 +180,7 @@ def _get_removable_filepath_for_resource(
     return RemovablePath(filepath)
 
 
-def _download_remote_file(res_id: str, url: str) -> Optional[str]:
+def _download_remote_file(res_id: str, url: str) -> str | None:
     """
     Downloads remote resource and save it as temporary file
     Returns path to this file
@@ -181,17 +192,16 @@ def _download_remote_file(res_id: str, url: str) -> Optional[str]:
             allow_redirects=True,
             stream=True,
         )
-    except Exception as e:
-        log.warn(
-            "Unable to make GET request for resource {} with url <{}>: {}"
-            .format(res_id, url, e)
+    except requests.exceptions.RequestException as e:
+        log.warning(
+            f"Unable to make GET request for resource {res_id} with url <{url}>: {e}"
         )
         return
 
     if not resp.ok:
-        log.warn(
-            "Unsuccessful GET request for resource {} with url <{}>.          "
-            "   Status code: {}".format(res_id, url, resp.status_code),
+        log.warning(
+            f"Unsuccessful GET request for resource {res_id} with url <{url}>.          "
+            f"   Status code: {resp.status_code}",
         )
 
         return
@@ -199,33 +209,51 @@ def _download_remote_file(res_id: str, url: str) -> Optional[str]:
     try:
         size = int(resp.headers.get("content-length", 0))
     except ValueError:
-        log.warn("Incorrect Content-length header from url <{}>".format(url))
+        log.warning(f"Incorrect Content-length header from url <{url}>")
         return
 
     if 0 < size < _get_remote_res_max_size():
-        dest = tempfile.NamedTemporaryFile(delete=False)
-        try:
-            with dest:
+        with tempfile.NamedTemporaryFile(delete=False) as dest:
+            try:
                 for chunk in resp.iter_content(1024 * 64):
                     dest.write(chunk)
-        except requests.exceptions.RequestException as e:
-            log.error(
-                "Cannot index remote resource {} with url <{}>: {}".format(
-                    res_id, url, e
+            except requests.exceptions.RequestException as e:
+                log.error(
+                    f"Cannot index remote resource {res_id} with url <{url}>: {e}"
                 )
+                os.remove(dest.name)
+                return
+        return dest.name
+
+
+def _download_storage_file(res_id: str, storage: Any, location: str) -> str | None:
+    """
+    Copies resource file from file-keeper storage into temporary file
+    Returns path to this file
+    """
+    with tempfile.NamedTemporaryFile(delete=False) as dest:
+        try:
+            for chunk in storage.stream(fk.FileData(fk.Location(location))):
+                dest.write(chunk)
+        # any error of the storage adapter skips the resource
+        except Exception as e:  # noqa: BLE001
+            log.warning(
+                "Cannot read resource %s from storage location <%s>: %s",
+                res_id,
+                location,
+                e,
             )
             os.remove(dest.name)
             return
-        return dest.name
+
+    return dest.name
 
 
 def _get_remote_res_max_size():
     return config.max_remote_size() * 1024**2
 
 
-def merge_text_chunks(
-    pkg_dict: dict[str, Any], chunks: Iterable[str]
-) -> Optional[str]:
+def merge_text_chunks(pkg_dict: dict[str, Any], chunks: Iterable[str]) -> str | None:
     index_field = config.index_field()
     if not index_field:
         index_field = "text"
@@ -257,9 +285,9 @@ def extract_pdf(path: str) -> Iterable[str]:
         try:
             pdf_content = pdftotext.PDF(source)
         except UnicodeDecodeError as e:
-            raise exc.UnexpectedEncodingError(path, e)
-        except Exception:
-            raise exc.UnexpectedContentError(path)
+            raise exc.UnexpectedEncodingError(path, e) from e
+        except Exception as e:
+            raise exc.UnexpectedContentError(path) from e
 
     for page in pdf_content:
         # normalize null-terminated strings that appear in old versions of poppler
@@ -305,9 +333,7 @@ def bypass_indexation() -> bool:
 
     May be used for fast index re-builds.
     """
-    return (
-        bool(os.getenv("CKANEXT_RESOURCE_INDEXER_BYPASS")) or bypass_flag.get()
-    )
+    return bool(os.getenv("CKANEXT_RESOURCE_INDEXER_BYPASS")) or bypass_flag.get()
 
 
 @contextmanager

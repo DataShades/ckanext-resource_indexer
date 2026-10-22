@@ -1,4 +1,5 @@
 import pytest
+
 from ckanext.resource_indexer import utils
 
 
