@@ -10,7 +10,7 @@ import ckan.plugins.toolkit as tk
 import click
 from ckan.lib.search import common, index_for
 
-from ckan import model
+from ckan import logic, model
 
 from . import config, utils
 
@@ -78,7 +78,7 @@ def rebuild(
     patched_formats = _patched_config(config.CONFIG_INDEXABLE_FORMATS, list(formats))
     with patched_formats, click.progressbar(ids) as bar:
         for id_ in bar:
-            pkg_dict = tk.get_action("package_show")(dict(context), {"id": id_})
+            pkg_dict = _indexable_package_dict(context, id_)
             try:
                 log.info("Index package %s", id_)
                 package_index.insert_dict(pkg_dict)
@@ -92,6 +92,20 @@ def rebuild(
                     log.exception("Cannot suggest solution for the problem.")
 
                 continue
+
+
+def _indexable_package_dict(context: dict[str, Any], id_: str) -> dict[str, Any]:
+    """Get the package data in the form accepted by the search index.
+
+    Since CKAN v2.12, the index expects the data with the default show schema
+    and the data with the custom show schema under `with_custom_schema` key.
+    """
+    both = getattr(logic, "package_show_default_and_custom_schemas", None)
+    if both is None:
+        return tk.get_action("package_show")(dict(context), {"id": id_})
+
+    with_default_schema, with_custom_schema = both(dict(context), id_)
+    return dict(with_default_schema, with_custom_schema=with_custom_schema)
 
 
 def _suggest_solution(err: common.SearchIndexError, pkg_dict: dict[str, Any]) -> bool:
