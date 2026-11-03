@@ -9,16 +9,25 @@ from werkzeug.utils import import_string
 
 log = logging.getLogger(__name__)
 
-CONFIG_JSON_AS_TEXT = "ckanext.resoruce_indexer.json.add_as_plain"
+CONFIG_JSON_AS_TEXT = "ckanext.resource_indexer.json.add_as_plain"
 DEFAULT_JSON_AS_TEXT = False
 
-CONFIG_INDEX_FIELD = "ckanext.resoruce_indexer.index_field"
+CONFIG_INDEX_FIELD = "ckanext.resource_indexer.index_field"
 DEFAULT_INDEX_FIELD = None
 
 CONFIG_MAX_REMOTE_SIZE = "ckanext.resource_indexer.max_remote_size"
 DEFAULT_MAX_REMOTE_SIZE = 4
 
-CONFIG_ALLOW_REMOTE = "ckanext.resource_indexer.allow_remote"
+CONFIG_MAX_SIZE = "ckanext.resource_indexer.max_size"
+DEFAULT_MAX_SIZE = 0
+
+CONFIG_MAX_TEXT_PER_DATASET = "ckanext.resource_indexer.max_text_per_dataset"
+DEFAULT_MAX_TEXT_PER_DATASET = 0
+
+CONFIG_PLAIN_MAX_READ = "ckanext.resource_indexer.plain.max_read"
+DEFAULT_PLAIN_MAX_READ = 0
+
+CONFIG_ALLOW_REMOTE ="ckanext.resource_indexer.allow_remote"
 DEFAULT_ALLOW_REMOTE = False
 
 CONFIG_REMOTE_TIMEOUT = "ckanext.resource_indexer.remote_timeout"
@@ -30,16 +39,16 @@ DEFAULT_INDEXABLE_FORMATS = None
 CONFIG_PLAIN_FORMATS = "ckanext.resource_indexer.plain.indexable_formats"
 DEFAULT_PLAIN_FORMATS = ["txt", "csv", "json", "yaml", "yml", "html"]
 
-CONFIG_BOOST = "ckanext.resoruce_indexer.search_boost"
+CONFIG_BOOST = "ckanext.resource_indexer.search_boost"
 DEFAULT_BOOST = 1.0
 
-CONFIG_JSON_KEY = "ckanext.resoruce_indexer.json.key_processor"
+CONFIG_JSON_KEY = "ckanext.resource_indexer.json.key_processor"
 DEFAULT_JSON_KEY = "builtins:str"
 
-CONFIG_JSON_VALUE = "ckanext.resoruce_indexer.json.value_processor"
+CONFIG_JSON_VALUE = "ckanext.resource_indexer.json.value_processor"
 DEFAULT_JSON_VALUE = "builtins:str"
 
-CONFIG_PFD_PROCESSOR = "ckanext.resoruce_indexer.pdf.page_processor"
+CONFIG_PFD_PROCESSOR = "ckanext.resource_indexer.pdf.page_processor"
 DEFAULT_PFD_PROCESSOR = "builtins:str"
 
 
@@ -68,6 +77,23 @@ def allow_remote() -> bool:
 
 def max_remote_size() -> int:
     return tk.asint(tk.config.get(CONFIG_MAX_REMOTE_SIZE, DEFAULT_MAX_REMOTE_SIZE))
+
+
+def max_size() -> int:
+    """Size limit(bytes) for any indexed resource. 0 means no limit."""
+    return tk.asint(tk.config.get(CONFIG_MAX_SIZE, DEFAULT_MAX_SIZE)) * 1024**2
+
+
+def max_text_per_dataset() -> int:
+    """Limit(characters) of resource text added to a dataset. 0 means no limit."""
+    return tk.asint(
+        tk.config.get(CONFIG_MAX_TEXT_PER_DATASET, DEFAULT_MAX_TEXT_PER_DATASET)
+    )
+
+
+def plain_max_read() -> int:
+    """Number of bytes read from a plain resource. 0 means whole file."""
+    return tk.asint(tk.config.get(CONFIG_PLAIN_MAX_READ, DEFAULT_PLAIN_MAX_READ))
 
 
 def remote_timeout() -> int:

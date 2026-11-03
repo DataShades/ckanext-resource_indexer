@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.6.0](https://github.com/DataShades/ckanext-resource_indexer/compare/v0.5.1...v0.6.0) (2026-11-03)
+
+### ⚠ BREAKING CHANGES
+
+* config options with the misspelled `ckanext.resoruce_indexer.` prefix are
+  renamed to `ckanext.resource_indexer.`. The old names are ignored now,
+  update your config:
+  * `ckanext.resoruce_indexer.index_field` -> `ckanext.resource_indexer.index_field`
+  * `ckanext.resoruce_indexer.search_boost` -> `ckanext.resource_indexer.search_boost`
+  * `ckanext.resoruce_indexer.pdf.page_processor` -> `ckanext.resource_indexer.pdf.page_processor`
+  * `ckanext.resoruce_indexer.json.add_as_plain` -> `ckanext.resource_indexer.json.add_as_plain`
+  * `ckanext.resoruce_indexer.json.key_processor` -> `ckanext.resource_indexer.json.key_processor`
+  * `ckanext.resoruce_indexer.json.value_processor` -> `ckanext.resource_indexer.json.value_processor`
+
+### Features
+
+* `ckanext.resource_indexer.max_size` skips resources bigger than the limit(MB).
+  Partially read resources are exempt
+* `ckanext.resource_indexer.max_text_per_dataset` limits the text added to a
+  single dataset
+* `ckanext.resource_indexer.plain.max_read` reads only the beginning of plain
+  resources; non-local files are downloaded partially
+* `IResourceIndexer.get_resource_read_limit` lets indexers request only the
+  beginning of the file
+
 ### [0.4.1](https://github.com/DataShades/ckanext-resource_indexer/compare/v0.4.0...v0.4.1) (2023-02-21)
 
 

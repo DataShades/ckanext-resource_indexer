@@ -41,6 +41,21 @@ class IResourceIndexer(interfaces.Interface):
         """
         return []
 
+    def get_resource_read_limit(self, resource: dict[str, Any]) -> int:
+        """Number of bytes the indexer needs from the beginning of the file.
+
+        Only the first N bytes of the file are fetched and passed into
+        `extract_indexable_chunks`. Use it only for formats that can be
+        processed partially, e.g. plain text.
+
+        Args:
+            resource: resource's details
+
+        Returns:
+            the limit in bytes, 0 means the whole file
+        """
+        return 0
+
     def merge_chunks_into_index(self, pkg_dict: dict[str, Any], chunks: Any):
         """Merge data into the package dictionary.
 
