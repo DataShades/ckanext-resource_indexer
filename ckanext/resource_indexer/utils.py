@@ -8,7 +8,7 @@ import tempfile
 from collections.abc import Iterable
 from contextlib import contextmanager
 from contextvars import ContextVar
-from typing import Any
+from typing import IO, Any
 
 import ckan.plugins as p
 import requests
@@ -54,7 +54,26 @@ def select_indexable_resources(
 
 def index_resource(res: dict[str, Any], pkg_dict: dict[str, Any]):
     """Extract the data from resource and merge it into the package."""
-    removable_path = _get_removable_filepath_for_resource(res)
+    handler = _get_handler(res)
+    if not handler:
+        return
+
+    # indexers created before `get_resource_read_limit` was added to the
+    # interface do not inherit it
+    read_limit = getattr(handler, "get_resource_read_limit", lambda res: 0)(res)
+
+    max_size = config.max_size()
+
+    if max_size and not read_limit and _get_resource_size(res) > max_size:
+        log.info(
+            "Resource %s of the package %s exceeds the size limit and is not indexed",
+            res["id"],
+            pkg_dict["id"],
+        )
+        return
+
+    removable_path = _get_removable_filepath_for_resource(res, read_limit)
+
     if not removable_path:
         return
 
@@ -62,10 +81,8 @@ def index_resource(res: dict[str, Any], pkg_dict: dict[str, Any]):
         assert path, "Path cannot be missing"
 
         try:
-            handler = _get_handler(res)
-            if handler:
-                chunks = handler.extract_indexable_chunks(path)
-                handler.merge_chunks_into_index(pkg_dict, chunks)
+            chunks = handler.extract_indexable_chunks(path)
+            handler.merge_chunks_into_index(pkg_dict, chunks)
         except Exception:
             log.exception(
                 (
@@ -77,6 +94,34 @@ def index_resource(res: dict[str, Any], pkg_dict: dict[str, Any]):
                 res["id"],
                 pkg_dict["id"],
             )
+
+
+def _get_resource_size(res: dict[str, Any]) -> int:
+    try:
+        return int(res.get("size") or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def text_budget_left(pkg_dict: dict[str, Any]) -> int | None:
+    """Number of characters that can still be added to the index field.
+
+    Returns:
+        remaining characters or None, if text is not limited
+    """
+    limit = config.max_text_per_dataset()
+
+    if not limit:
+        return None
+
+    current = pkg_dict.get(config.index_field() or "text") or ""
+
+    if isinstance(current, list):
+        used = sum(len(str(item)) for item in current)
+    else:
+        used = len(str(current))
+
+    return max(limit - used, 0)
 
 
 def _get_handler(res):
@@ -128,7 +173,9 @@ class RemovablePath(StaticPath):
             os.remove(self.path)
 
 
-def _get_removable_filepath_for_resource(res: dict[str, Any]) -> StaticPath | None:
+def _get_removable_filepath_for_resource(
+    res: dict[str, Any], read_limit: int = 0
+) -> StaticPath | None:
     """Returns a context with a path to the file owned by the resource.
 
     The real path can be extracted from the return value using with-statement:
@@ -144,6 +191,9 @@ def _get_removable_filepath_for_resource(res: dict[str, Any]) -> StaticPath | No
     uploaded into file-keeper storage(CKAN v2.12+) are always copied into a
     temporary file. After processing, file will be automatically removed.
 
+    When `read_limit` is set, only the first `read_limit` bytes of non-local
+    files are downloaded. Otherwise, files bigger than
+    `ckanext.resource_indexer.max_size` are ignored.
 
 
     """
@@ -156,13 +206,13 @@ def _get_removable_filepath_for_resource(res: dict[str, Any]) -> StaticPath | No
         # TODO temporary workaround for ckanext-cloudstorage support
         if p.plugin_loaded("cloudstorage"):
             url = uploader.get_url_from_filename(res_id, res_url)  # type: ignore
-            filepath = _download_remote_file(res_id, url)
+            filepath = _download_remote_file(res_id, url, read_limit)
             return RemovablePath(filepath)
 
         storage = getattr(uploader, "storage", None)
         if fk and isinstance(storage, fk.Storage):
             filepath = _download_storage_file(
-                res_id, storage, uploader.get_path(res_id)
+                res_id, storage, uploader.get_path(res_id), read_limit
             )
             return RemovablePath(filepath)
 
@@ -171,16 +221,21 @@ def _get_removable_filepath_for_resource(res: dict[str, Any]) -> StaticPath | No
             log.warning('Resource "%s" refers to unexisting path "%s"', res, path)
             return
 
+        max_size = config.max_size()
+        if max_size and not read_limit and os.path.getsize(path) > max_size:
+            log.info("Resource %s exceeds the size limit and is not indexed", res_id)
+            return
+
         return StaticPath(path)
 
     if not config.allow_remote():
         return
 
-    filepath = _download_remote_file(res_id, res_url)
+    filepath = _download_remote_file(res_id, res_url, read_limit)
     return RemovablePath(filepath)
 
 
-def _download_remote_file(res_id: str, url: str) -> str | None:
+def _download_remote_file(res_id: str, url: str, read_limit: int = 0) -> str | None:
     """
     Downloads remote resource and save it as temporary file
     Returns path to this file
@@ -213,28 +268,36 @@ def _download_remote_file(res_id: str, url: str) -> str | None:
         return
 
     if 0 < size < _get_remote_res_max_size():
-        with tempfile.NamedTemporaryFile(delete=False) as dest:
+        with resp, tempfile.NamedTemporaryFile(delete=False) as dest:
             try:
-                for chunk in resp.iter_content(1024 * 64):
-                    dest.write(chunk)
+                fits = _write_chunks(resp.iter_content(1024 * 64), dest, read_limit)
             except requests.exceptions.RequestException as e:
                 log.error(
                     f"Cannot index remote resource {res_id} with url <{url}>: {e}"
                 )
                 os.remove(dest.name)
                 return
+
+        if not fits:
+            log.info("Resource %s exceeds the size limit and is not indexed", res_id)
+            os.remove(dest.name)
+            return
+
         return dest.name
 
 
-def _download_storage_file(res_id: str, storage: Any, location: str) -> str | None:
+def _download_storage_file(
+    res_id: str, storage: Any, location: str, read_limit: int = 0
+) -> str | None:
     """
     Copies resource file from file-keeper storage into temporary file
     Returns path to this file
     """
     with tempfile.NamedTemporaryFile(delete=False) as dest:
         try:
-            for chunk in storage.stream(fk.FileData(fk.Location(location))):
-                dest.write(chunk)
+            fits = _write_chunks(
+                storage.stream(fk.FileData(fk.Location(location))), dest, read_limit
+            )
         # any error of the storage adapter skips the resource
         except Exception as e:  # noqa: BLE001
             log.warning(
@@ -246,7 +309,36 @@ def _download_storage_file(res_id: str, storage: Any, location: str) -> str | No
             os.remove(dest.name)
             return
 
+    if not fits:
+        log.info("Resource %s exceeds the size limit and is not indexed", res_id)
+        os.remove(dest.name)
+        return
+
     return dest.name
+
+
+def _write_chunks(chunks: Iterable[bytes], dest: IO[bytes], read_limit: int) -> bool:
+    """Copy chunks into the file, stopping after `read_limit` bytes.
+
+    Returns:
+        False if the content exceeds `ckanext.resource_indexer.max_size`.
+        The limit is not applied when `read_limit` is set.
+    """
+    max_size = 0 if read_limit else config.max_size()
+    written = 0
+
+    for chunk in chunks:
+        if read_limit and written + len(chunk) >= read_limit:
+            dest.write(chunk[: read_limit - written])
+            return True
+
+        written += len(chunk)
+        if max_size and written > max_size:
+            return False
+
+        dest.write(chunk)
+
+    return True
 
 
 def _get_remote_res_max_size():
@@ -259,7 +351,7 @@ def merge_text_chunks(pkg_dict: dict[str, Any], chunks: Iterable[str]) -> str | 
         index_field = "text"
         pkg_dict.setdefault(index_field, [])
 
-    str_index = "".join(chunks)
+    str_index = "".join(_limit_chunks(chunks, text_budget_left(pkg_dict)))
     if not str_index:
         return
 
@@ -274,6 +366,26 @@ def merge_text_chunks(pkg_dict: dict[str, Any], chunks: Iterable[str]) -> str | 
         debug_last_content.set(pkg_dict[index_field])
 
     return str_index
+
+
+def _limit_chunks(chunks: Iterable[str], limit: int | None) -> Iterable[str]:
+    """Yield chunks until `limit` characters are produced.
+
+    Remaining chunks are not consumed, so lazy extractors stop early.
+    """
+    if limit is None:
+        yield from chunks
+        return
+
+    if limit <= 0:
+        return
+
+    for chunk in chunks:
+        yield chunk[:limit]
+        limit -= len(chunk)
+
+        if limit <= 0:
+            return
 
 
 def extract_pdf(path: str) -> Iterable[str]:
@@ -297,11 +409,11 @@ def extract_pdf(path: str) -> Iterable[str]:
         yield processed
 
 
-def extract_plain(path) -> Iterable[str]:
+def extract_plain(path, limit: int = 0) -> Iterable[str]:
     # we're replacing unknown characters with '�' to avoid UnicodeDecodeError
     # we may want to guess encoding in the future
     with open(path, errors="replace") as f:
-        content = f.read()
+        content = f.read(limit or -1)
     yield content
 
 

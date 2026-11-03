@@ -46,6 +46,18 @@ ckanext.resource_indexer.remote_timeout = 10
 # (optional, default: 4).
 ckanext.resource_indexer.max_remote_size = 4
 
+# The size treshold(MB) for any resource, local or remote. Bigger resources
+# are not indexed. Resources read partially(see
+# `ckanext.resource_indexer.plain.max_read`) are exempt. 0 disables the limit.
+# (optional, default: 0).
+ckanext.resource_indexer.max_size = 20
+
+# The maximum number of characters that resources can add to the index field
+# of a single dataset. Text over the limit is cut, and remaining resources of
+# the dataset are not processed. 0 disables the limit.
+# (optional, default: 0).
+ckanext.resource_indexer.max_text_per_dataset = 1000000
+
 # List of resource formats(lowercase) that should be
 # indexed.
 # (optional, default: None)
@@ -54,14 +66,14 @@ ckanext.resource_indexer.indexable_formats = txt pdf
 # Store the data extracted from resource inside specified field in the index.
 # If empty, store data inside the general-purpose `text` field.
 # (optional, default: text)
-ckanext.resoruce_indexer.index_field = extras_res_attachment
+ckanext.resource_indexer.index_field = extras_res_attachment
 
 # Boost matches by resource's content. Set values greater that 1 in order
 # to promote such matches and value between 0 and 1 in order to put such
 # matches further in search results. Works only when using custom index
-# field(`ckanext.resoruce_indexer.index_field`)
+# field(`ckanext.resource_indexer.index_field`)
 # (optional, default: 1)
-ckanext.resoruce_indexer.search_boost = 0.5
+ckanext.resource_indexer.search_boost = 0.5
 
 ##### Indexer specific option ###############
 
@@ -70,23 +82,29 @@ ckanext.resoruce_indexer.search_boost = 0.5
 # (optional, default: txt csv json yaml yml html)
 ckanext.resource_indexer.plain.indexable_formats = xml txt csv
 
+# Read only the first N bytes of a plain resource. Non-local files are
+# downloaded only partially. When set, plain resources are exempt from
+# `ckanext.resource_indexer.max_size`. 0 means the whole file.
+# (optional, default: 0)
+ckanext.resource_indexer.plain.max_read = 1048576
+
 ### PDF
 # Change a text from a single page before it added to the index
 # (optional, default: builtins:str)
-ckanext.resoruce_indexer.pdf.page_processor = custom.module:value_processor
+ckanext.resource_indexer.pdf.page_processor = custom.module:value_processor
 
 ### JSON
 # Index JSON files as plain text(in addition to indexing as mapping)
 # (optional, default: false)
-ckanext.resoruce_indexer.json.add_as_plain = true
+ckanext.resource_indexer.json.add_as_plain = true
 
 # Change a key before it's used for patching the package dictionary
 # (optional, default: builtins:str)
-ckanext.resoruce_indexer.json.key_processor = custom.module:key_processor
+ckanext.resource_indexer.json.key_processor = custom.module:key_processor
 
 # Change a value before it's used for patching the package dictionary
 # (optional, default: builtins:str)
-ckanext.resoruce_indexer.json.value_processor = custom.module:value_processor
+ckanext.resource_indexer.json.value_processor = custom.module:value_processor
 ```
 
 ## Indexers
@@ -239,7 +257,7 @@ In order to enable it:
     ```
 
 If PDF content requires preprocessing, specify function that converts text from
-a every separate as a `ckanext.resoruce_indexer.pdf.page_processor`. It uses
+a every separate as a `ckanext.resource_indexer.pdf.page_processor`. It uses
 standard import-string format: `module.import.path:function`
 
 #### JSON indexer
@@ -248,13 +266,13 @@ Read a dictionary from the JSON file, convert all non-string values into
 strings(i.e, no nested values allowed), and apply it as a patch to the indexed
 dataset.
 
-Optionally, if `ckanext.resoruce_indexer.json.add_as_plain` flag enabled, index
+Optionally, if `ckanext.resource_indexer.json.add_as_plain` flag enabled, index
 the content of the file as a plain-text(similar to the [plain
 indexer](#plain-indexer))
 
 If key or value requires preprocessing, specify function that converts data as
-a `ckanext.resoruce_indexer.json.key_processor` or
-`ckanext.resoruce_indexer.json.value_processor`. It uses standard import-string
+a `ckanext.resource_indexer.json.key_processor` or
+`ckanext.resource_indexer.json.value_processor`. It uses standard import-string
 format: `module.import.path:function`
 
 

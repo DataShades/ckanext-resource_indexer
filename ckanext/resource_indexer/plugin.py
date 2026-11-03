@@ -26,6 +26,10 @@ class ResourceIndexerPlugin(p.SingletonPlugin):
 
         resources = json.loads(pkg_dict["validated_data_dict"]).get("resources", [])
         for res in utils.select_indexable_resources(resources):
+            # do not fetch files when there is no room for their text
+            if utils.text_budget_left(pkg_dict) == 0:
+                break
+
             utils.index_resource(res, pkg_dict)
         return pkg_dict
 
@@ -74,8 +78,11 @@ class PlainResourceIndexerPlugin(p.SingletonPlugin):
 
         return utils.Weight.skip
 
+    def get_resource_read_limit(self, res):
+        return config.plain_max_read()
+
     def extract_indexable_chunks(self, path):
-        return utils.extract_plain(path)
+        return utils.extract_plain(path, config.plain_max_read())
 
     def merge_chunks_into_index(self, pkg_dict, chunks):
         return utils.merge_text_chunks(pkg_dict, chunks)
